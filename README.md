@@ -13,7 +13,7 @@
 
 ## Features
 
-- **Full X API v2** — Posts, timelines, users, lists, DMs, engagement
+- **Full X API v2** — Posts, timelines, users, lists, DMs, spaces, media, engagement
 - **OAuth 2.0 PKCE** — Secure authentication, no API keys exposed
 - **Type-safe** — Zod validation on all API responses
 - **Beautiful output** — Pretty terminal formatting or JSON for pipes
@@ -174,6 +174,32 @@ x dm conversation <id>         # View by conversation ID
 x dm send <username> <text>    # Send a DM
 x dm group -u user1 -u user2 <text>  # Create group DM
 x dm delete <event_id>         # Delete a message
+```
+
+</details>
+
+<details>
+<summary><strong>Spaces</strong></summary>
+
+```bash
+x space get <id>               # Get space details
+x space search <query>         # Search spaces
+x space search --state live    # Filter by state
+x space buyers <id>            # Get ticketed space buyers
+x spaces <username>            # User's spaces
+```
+
+</details>
+
+<details>
+<summary><strong>Media</strong></summary>
+
+```bash
+x media upload <file>          # Upload media file
+x media upload <file> --alt "description"  # With alt text
+x media upload <file> --wait   # Wait for processing
+x media status <id>            # Check processing status
+x media wait <id>              # Wait for processing complete
 ```
 
 </details>

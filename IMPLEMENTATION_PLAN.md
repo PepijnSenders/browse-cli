@@ -1,6 +1,6 @@
 # X-CLI Implementation Plan
 
-## Status: P1 Complete | P2 Complete | P3 Complete | P4 Complete | P5 Complete | P6 Pending | P7 Pending | P8 Pending
+## Status: P1 Complete | P2 Complete | P3 Complete | P4 Complete | P5 Complete | P6 Complete | P7 Pending | P8 Pending
 
 This document tracks the implementation of x-cli based on the spec phases.
 
@@ -169,20 +169,22 @@ This document tracks the implementation of x-cli based on the spec phases.
 ## Phase 6: Spaces & Media (specs/06-spaces-media.md)
 
 ### Spaces
-- [ ] `x space <id>` - get space details
-- [ ] `x space search <query>` - search spaces
-- [ ] `x space search --state live` - filter by state
-- [ ] `x spaces <username>` - user's spaces
-- [ ] Space API client implementation
+- [x] `x space get <id>` - get space details
+- [x] `x space search <query>` - search spaces
+- [x] `x space search --state live` - filter by state
+- [x] `x spaces <username>` - user's spaces
+- [x] `x space buyers <id>` - get ticketed space buyers
+- [x] Space API client implementation
 
 ### Media Upload
-- [ ] `x media upload <file>` - upload media
-- [ ] Simple upload for images < 5MB
-- [ ] Chunked upload for videos/large files
-- [ ] `x media upload --alt <text>` - set alt text
-- [ ] `x media status <id>` - check processing status
-- [ ] Progress indicator during upload
-- [ ] Media API client implementation
+- [x] `x media upload <file>` - upload media
+- [x] Simple upload for images < 5MB
+- [x] Chunked upload for videos/large files
+- [x] `x media upload --alt <text>` - set alt text
+- [x] `x media status <id>` - check processing status
+- [x] `x media wait <id>` - wait for processing
+- [x] Progress indicator during upload
+- [x] Media API client implementation
 
 ---
 
@@ -278,12 +280,19 @@ These items from specs/09-12 are now in scope:
 
 ## Recent Enhancements
 
+**2025-01-03 (Spaces & Media - COMPLETE!):**
+- Implemented Spaces API client (lookup, search, by creator, buyers)
+- Created CLI commands: space get, space search, space buyers, spaces
+- Implemented Media API client (simple upload, chunked upload, status)
+- Created CLI commands: media upload, media status, media wait
+- Support for alt text, progress indicators, async processing
+- All 28 tests passing, TypeScript clean
+
 **2025-01-03 (Direct Messages - COMPLETE!):**
 - Implemented DM API client (listConversations, getMessages, send, delete)
 - Created CLI commands: dm list, dm view, dm conversation, dm send, dm group, dm delete
 - Pretty output for conversation list and message display
 - Group DM creation support
-- All 28 tests passing, TypeScript clean
 
 **2025-01-03 (Lists & Documentation - COMPLETE!):**
 - Implemented full Lists API (CRUD, timeline, members, follow, pin)
@@ -300,7 +309,8 @@ These items from specs/09-12 are now in scope:
 
 ## Next Priority
 
-**Phase 6: Spaces & Media** - Implement Spaces lookup and Media upload:
-1. Spaces API client (lookup, search)
-2. Media upload (simple and chunked)
-3. CLI commands: space, spaces, media upload, media status
+**Phase 7: Grok Integration** - Implement AI features:
+1. Grok API client (api.x.ai/v1)
+2. Natural language command parsing
+3. Summarization, analysis, content generation
+4. CLI commands: grok, grok summarize, grok draft, grok reply

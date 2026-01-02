@@ -32,6 +32,9 @@ import {
   createListCommand,
   createListsCommand,
   createDMCommand,
+  createSpaceCommand,
+  createSpacesCommand,
+  createMediaCommand,
 } from "./cli/index.js";
 import { setOutputOptions } from "./output/index.js";
 
@@ -92,6 +95,9 @@ program.addCommand(createMutesCommand());
 program.addCommand(createListCommand());
 program.addCommand(createListsCommand());
 program.addCommand(createDMCommand());
+program.addCommand(createSpaceCommand());
+program.addCommand(createSpacesCommand());
+program.addCommand(createMediaCommand());
 
 // Parse and execute
 program.parse();

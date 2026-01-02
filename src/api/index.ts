@@ -71,3 +71,20 @@ export {
   createGroupDM,
   deleteDMEvent,
 } from "./dm.js";
+
+export {
+  getSpace,
+  getSpaces,
+  searchSpaces,
+  getSpacesByCreators,
+  getSpaceBuyers,
+} from "./spaces.js";
+
+export {
+  uploadMedia,
+  simpleUpload,
+  chunkedUpload,
+  getMediaStatus,
+  waitForProcessing,
+  setMediaAltText,
+} from "./media.js";

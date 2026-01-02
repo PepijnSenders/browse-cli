@@ -24,3 +24,5 @@ export {
 } from "./relationships.js";
 export { createListCommand, createListsCommand } from "./list.js";
 export { createDMCommand } from "./dm.js";
+export { createSpaceCommand, createSpacesCommand } from "./space.js";
+export { createMediaCommand } from "./media.js";
