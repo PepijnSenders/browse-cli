@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Ralph loop state (session-specific)
+.claude/ralph-loop.local.md
+.call_count
+.circuit_breaker_history
+.circuit_breaker_state
+.exit_signals
+.last_reset
+progress.json
+status.json
+
+# Test coverage
+coverage/
+
+# Lock files (keep pnpm-lock.yaml)
+package-lock.json
+yarn.lock
+bun.lockb
