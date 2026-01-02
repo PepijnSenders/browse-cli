@@ -5,3 +5,28 @@ export {
   type ClientOptions,
   type RequestOptions,
 } from "./client.js";
+
+export { getMe, getUserByUsername, getUserById } from "./users.js";
+
+export {
+  getTweet,
+  createTweet,
+  deleteTweet,
+  replyToTweet,
+  quoteTweet,
+  getHomeTimeline,
+  getUserTimeline,
+  getMentions,
+  searchTweets,
+  type PaginationOptions,
+} from "./posts.js";
+
+export {
+  likeTweet,
+  unlikeTweet,
+  retweet,
+  unretweet,
+  bookmarkTweet,
+  removeBookmark,
+  getBookmarks,
+} from "./engagement.js";

@@ -1,22 +1,20 @@
 # Ralph Fix Plan
 
 ## High Priority
-- [ ] Implement post commands (create, delete, reply)
-- [ ] Implement timeline commands (home, user, mentions)
-- [ ] Implement search command
-- [ ] Implement engagement commands (like, repost, bookmark)
+- [ ] Implement user commands (follow, unfollow, block, mute)
+- [ ] Add configuration management
+- [ ] Implement list commands
 
 ## Medium Priority
-- [ ] Add configuration management
-- [ ] Implement user commands (follow, unfollow, block, mute)
-- [ ] Create user documentation
-- [ ] Implement list commands
+- [ ] Create user documentation (README)
+- [ ] Extended feature set (DMs)
+- [ ] Grok integration
+- [ ] REPL mode
 
 ## Low Priority
 - [ ] Performance optimization
-- [ ] Extended feature set (DMs, spaces)
-- [ ] Grok integration
-- [ ] REPL mode
+- [ ] Spaces support
+- [ ] Shell completions
 
 ## Completed
 - [x] Project initialization
@@ -30,6 +28,11 @@
 - [x] Build output formatters (JSON, Pretty)
 - [x] Implement auth commands (login, logout, status, refresh)
 - [x] Implement user lookup (me, user <username>)
+- [x] Implement post commands (create, get, delete, reply, quote)
+- [x] Implement timeline commands (home, user, mentions)
+- [x] Implement search command
+- [x] Implement engagement commands (like, unlike, repost, unrepost)
+- [x] Implement bookmark commands (add, list, remove)
 
 ## Notes
 - Focus on MVP functionality first

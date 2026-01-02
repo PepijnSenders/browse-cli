@@ -7,7 +7,19 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { createAuthCommand, createMeCommand, createUserCommand } from "./cli/index.js";
+import {
+  createAuthCommand,
+  createMeCommand,
+  createUserCommand,
+  createPostCommand,
+  createTimelineCommand,
+  createSearchCommand,
+  createLikeCommand,
+  createUnlikeCommand,
+  createRepostCommand,
+  createUnrepostCommand,
+  createBookmarkCommand,
+} from "./cli/index.js";
 import { setOutputOptions } from "./output/index.js";
 
 const program = new Command();
@@ -46,6 +58,14 @@ program.hook("preAction", (thisCommand) => {
 program.addCommand(createAuthCommand());
 program.addCommand(createMeCommand());
 program.addCommand(createUserCommand());
+program.addCommand(createPostCommand());
+program.addCommand(createTimelineCommand());
+program.addCommand(createSearchCommand());
+program.addCommand(createLikeCommand());
+program.addCommand(createUnlikeCommand());
+program.addCommand(createRepostCommand());
+program.addCommand(createUnrepostCommand());
+program.addCommand(createBookmarkCommand());
 
 // Parse and execute
 program.parse();
