@@ -554,9 +554,10 @@ x-cli-plugin/
 ├── skills/
 │   └── x-cli/
 │       ├── SKILL.md
-│       ├── COMMANDS.md
-│       ├── EXAMPLES.md
-│       └── TROUBLESHOOTING.md
+│       └── docs/
+│           ├── commands.md
+│           ├── examples.md
+│           └── troubleshooting.md
 └── README.md
 ```
 
@@ -692,6 +693,9 @@ x-cli-marketplace/
         │   └── plugin.json
         ├── commands/
         └── skills/
+            └── x-cli/
+                ├── SKILL.md
+                └── docs/
 ```
 
 ### marketplace.json
@@ -726,8 +730,9 @@ x-cli-marketplace/
 
 ```bash
 # Copy skill to personal directory
-mkdir -p ~/.claude/skills/x-cli
-cp -r x-cli-skill/* ~/.claude/skills/x-cli/
+mkdir -p ~/.claude/skills/x-cli/docs
+cp SKILL.md ~/.claude/skills/x-cli/
+cp docs/* ~/.claude/skills/x-cli/docs/
 
 # Restart Claude Code
 ```
@@ -736,8 +741,9 @@ cp -r x-cli-skill/* ~/.claude/skills/x-cli/
 
 ```bash
 # Add to project for team use
-mkdir -p .claude/skills/x-cli
-cp -r x-cli-skill/* .claude/skills/x-cli/
+mkdir -p .claude/skills/x-cli/docs
+cp SKILL.md .claude/skills/x-cli/
+cp docs/* .claude/skills/x-cli/docs/
 
 # Commit to git
 git add .claude/skills/x-cli
@@ -789,8 +795,10 @@ git commit -m "Add X CLI skill for Claude Code"
 ### Skill
 - [ ] SKILL.md has valid frontmatter
 - [ ] Description triggers on relevant queries
-- [ ] All commands documented
-- [ ] Examples are accurate
+- [ ] docs/ subfolder contains supporting files
+- [ ] @ mentions in SKILL.md reference docs/ files
+- [ ] All commands documented in docs/commands.md
+- [ ] Examples are accurate in docs/examples.md
 - [ ] Troubleshooting covers common issues
 
 ### Plugin
