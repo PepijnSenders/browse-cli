@@ -43,3 +43,21 @@ export {
   unmuteUser,
   getMuted,
 } from "./relationships.js";
+
+export {
+  getList,
+  createList,
+  updateList,
+  deleteList,
+  getListTimeline,
+  getOwnedLists,
+  getFollowedLists,
+  getPinnedLists,
+  getListMembers,
+  addListMember,
+  removeListMember,
+  followList,
+  unfollowList,
+  pinList,
+  unpinList,
+} from "./lists.js";

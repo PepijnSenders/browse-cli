@@ -1,7 +1,6 @@
 # Ralph Fix Plan
 
 ## High Priority
-- [ ] Implement list commands
 - [ ] Create user documentation (README)
 
 ## Medium Priority
@@ -35,6 +34,7 @@
 - [x] Implement user commands (follow, unfollow, following, followers)
 - [x] Implement block/unblock commands with blocks list
 - [x] Implement mute/unmute commands with mutes list
+- [x] Implement list commands (CRUD, members, timeline, follow, pin)
 
 ## Notes
 - Focus on MVP functionality first
