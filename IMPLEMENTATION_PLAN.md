@@ -243,7 +243,7 @@ This document tracks the implementation of x-cli based on the spec phases.
 ### Documentation
 - [x] README.md with features, install, quick start
 - [x] Command reference in README
-- [ ] CHANGELOG.md
+- [x] CHANGELOG.md
 - [ ] CONTRIBUTING.md
 
 ### Testing & Quality
@@ -262,9 +262,9 @@ These items from specs/09-12 are now in scope:
 ### Release & Distribution (specs/09-release-distribution.md)
 - [ ] npm package publishing
 - [ ] Homebrew formula
-- [ ] Binary releases (darwin-arm64, darwin-x64, linux-x64, win-x64)
-- [ ] GitHub Actions CI/CD
-- [ ] Version management
+- [x] Binary releases (darwin-arm64, darwin-x64, linux-x64, win-x64)
+- [x] GitHub Actions CI/CD
+- [x] Version management (release script)
 
 ### Website (specs/11-website.md)
 - [ ] Landing page
@@ -280,12 +280,19 @@ These items from specs/09-12 are now in scope:
 
 ## Recent Enhancements
 
+**2025-01-03 (Release & Distribution):**
+- Created GitHub Actions CI workflow (test, build, artifact upload)
+- Created GitHub Actions release workflow (multi-platform binaries)
+- Added CHANGELOG.md with full feature list
+- Created release script (scripts/release.sh)
+- Updated package.json with platform-specific build scripts
+- All 28 tests passing, TypeScript clean
+
 **2025-01-03 (Polish & Release - COMPLETE!):**
 - Implemented interactive REPL mode (`x -i`) with history and tab completion
 - Shell completions for bash, zsh, and fish
 - Configuration system with `x config` commands
 - Settings: default_output, default_limit stored in ~/.config/x-cli/config.json
-- All 28 tests passing, TypeScript clean
 
 **2025-01-03 (Grok Integration - COMPLETE!):**
 - Implemented Grok API client (api.x.ai/v1, chat completions)
