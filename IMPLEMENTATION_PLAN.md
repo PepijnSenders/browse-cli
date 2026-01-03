@@ -158,7 +158,7 @@ This document tracks the implementation of x-cli based on the spec phases.
 
 ### DM Send/Delete
 - [x] `x dm send <username> <text>` - send DM
-- [ ] `x dm send --media <file>` - DM with media (requires media upload)
+- [x] `x dm send --media <file>` - DM with media
 - [x] `x dm delete <event_id>` - delete message
 
 ### Group DM
@@ -280,6 +280,12 @@ These items from specs/09-12 are now in scope:
 ---
 
 ## Recent Enhancements
+
+**2025-01-03 (DM with Media):**
+- Added `--media <file>` option to `x dm send`
+- Added `--alt <text>` option for media accessibility
+- Integrated media upload with DM workflow
+- Completes Phase 5: Direct Messages
 
 **2025-01-03 (User Lookup & Search):**
 - Added `--id` option to `x user` for lookup by user ID

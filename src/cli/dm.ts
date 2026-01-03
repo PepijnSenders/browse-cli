@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { access } from "fs/promises";
 import {
   listConversations,
   getConversationMessages,
@@ -9,6 +10,11 @@ import {
 } from "../api/dm.js";
 import { getUserByUsername } from "../api/users.js";
 import {
+  uploadMedia,
+  setMediaAltText,
+  waitForProcessing,
+} from "../api/media.js";
+import {
   output,
   isJsonMode,
   printError,
@@ -16,8 +22,8 @@ import {
   formatRelativeTime,
   createTable,
 } from "../output/index.js";
-import { XCLIError, ErrorCode } from "../types/errors.js";
-import type { DMEvent } from "../types/index.js";
+import { XCLIError, ErrorCode, ValidationError } from "../types/errors.js";
+import type { DMEvent, SendDMRequest } from "../types/index.js";
 
 /**
  * Format conversation list for pretty output
@@ -220,7 +226,9 @@ export function createDMCommand(): Command {
     .description("Send a DM to a user")
     .argument("<username>", "Username to send to")
     .argument("<message>", "Message text")
-    .action(async (username: string, message: string) => {
+    .option("--media <file>", "Attach media file (image or video)")
+    .option("--alt <text>", "Alt text for media (accessibility)")
+    .action(async (username: string, message: string, options) => {
       const spinner = createSpinner("Sending message...");
 
       try {
@@ -228,8 +236,58 @@ export function createDMCommand(): Command {
           spinner.start();
         }
 
+        const request: SendDMRequest = { text: message };
+
+        // Handle media upload if provided
+        if (options.media) {
+          // Verify file exists
+          try {
+            await access(options.media);
+          } catch {
+            throw new ValidationError(`File not found: ${options.media}`);
+          }
+
+          if (!isJsonMode()) {
+            spinner.text = "Uploading media...";
+          }
+
+          const uploadResult = await uploadMedia(options.media, (percent) => {
+            if (!isJsonMode()) {
+              spinner.text = `Uploading media... ${percent}%`;
+            }
+          });
+
+          const mediaId = uploadResult.media_id_string;
+
+          // Set alt text if provided
+          if (options.alt) {
+            if (!isJsonMode()) {
+              spinner.text = "Setting alt text...";
+            }
+            await setMediaAltText(mediaId, options.alt);
+          }
+
+          // Wait for processing if needed (videos)
+          if (uploadResult.processing_info) {
+            if (!isJsonMode()) {
+              spinner.text = "Processing media...";
+            }
+            await waitForProcessing(mediaId, (state, percent) => {
+              if (!isJsonMode()) {
+                spinner.text = `Processing media: ${state}${percent ? ` ${percent}%` : ""}`;
+              }
+            });
+          }
+
+          request.attachments = [{ media_id: mediaId }];
+
+          if (!isJsonMode()) {
+            spinner.text = "Sending message...";
+          }
+        }
+
         const user = await getUserByUsername(username);
-        const result = await sendMessageToUser(user.id, { text: message });
+        const result = await sendMessageToUser(user.id, request);
 
         if (!isJsonMode()) {
           spinner.succeed(`Message sent to @${user.username}`);
