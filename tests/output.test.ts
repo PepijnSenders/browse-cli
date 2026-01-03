@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, beforeEach } from "bun:test";
 import {
   formatNumber,
   formatRelativeTime,
@@ -11,6 +11,9 @@ import {
   formatError,
   createTable,
   formatJSONError,
+  createSpinner,
+  setOutputOptions,
+  getOutputOptions,
 } from "../src/output/index.js";
 import { XCLIError, ErrorCode, APIError, ValidationError } from "../src/types/errors.js";
 import type { User, Tweet } from "../src/types/index.js";
@@ -352,4 +355,69 @@ describe("Table Creation", () => {
 
   // Note: cli-table3 toString() has environment-specific behavior
   // Table output is tested indirectly through CLI integration tests
+});
+
+describe("Output Options", () => {
+  beforeEach(() => {
+    // Reset to clean state
+    setOutputOptions({});
+  });
+
+  test("setOutputOptions sets options", () => {
+    setOutputOptions({ json: true, quiet: false });
+    const options = getOutputOptions();
+    expect(options.json).toBe(true);
+    expect(options.quiet).toBe(false);
+  });
+
+  test("getOutputOptions returns current options", () => {
+    const initial = getOutputOptions();
+    expect(initial).toBeDefined();
+    expect(typeof initial).toBe("object");
+  });
+
+  test("setOutputOptions merges with existing options", () => {
+    setOutputOptions({ json: true });
+    setOutputOptions({ verbose: true });
+    const options = getOutputOptions();
+    expect(options.json).toBe(true);
+    expect(options.verbose).toBe(true);
+  });
+
+  test("setOutputOptions can override existing options", () => {
+    setOutputOptions({ json: true });
+    setOutputOptions({ json: false });
+    const options = getOutputOptions();
+    expect(options.json).toBe(false);
+  });
+
+  test("setOutputOptions handles all option types", () => {
+    setOutputOptions({
+      json: true,
+      quiet: true,
+      verbose: true,
+      color: false,
+    });
+    const options = getOutputOptions();
+    expect(options.json).toBe(true);
+    expect(options.quiet).toBe(true);
+    expect(options.verbose).toBe(true);
+    expect(options.color).toBe(false);
+  });
+});
+
+describe("Spinner Creation", () => {
+  test("createSpinner returns spinner object", () => {
+    const spinner = createSpinner("Loading...");
+    expect(spinner).toBeDefined();
+    expect(typeof spinner.start).toBe("function");
+    expect(typeof spinner.stop).toBe("function");
+    expect(typeof spinner.succeed).toBe("function");
+    expect(typeof spinner.fail).toBe("function");
+  });
+
+  test("createSpinner has text property", () => {
+    const spinner = createSpinner("Test message");
+    expect(spinner.text).toBe("Test message");
+  });
 });
