@@ -182,6 +182,21 @@ twitterCmd
     })
   );
 
+twitterCmd
+  .command('likes')
+  .description('Get liked tweets from a user')
+  .argument('<username>', 'Twitter username without @')
+  .option('-c, --count <n>', 'number of liked tweets to fetch', '20')
+  .action(
+    wrapCommand(async (username: string, options: { count: string }, cmd: Command) => {
+      const count = parseInt(options.count, 10);
+      if (isNaN(count) || count < 1 || count > 100) {
+        throw new Error('Count must be between 1 and 100');
+      }
+      await twitter.getLikes(username, count, getGlobalOptions(cmd));
+    })
+  );
+
 // ============================================================================
 // LinkedIn Commands
 // ============================================================================

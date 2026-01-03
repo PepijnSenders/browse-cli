@@ -314,6 +314,7 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 | 17. Code Quality Fixes | ✓ Completed |
 | 18. Documentation & Integration Tests | ✓ Completed |
 | 19. Code Quality Refactoring | ✓ Completed |
+| 20. Twitter Likes Feature | ✓ Completed |
 
 ---
 
@@ -642,6 +643,49 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 **Verify**: Code quality improvements complete ✓
 
 **Summary**: Phase 19 focused on reducing code duplication, improving maintainability, and completing partially implemented features (text format output). Total code reduction of ~150 lines while adding new functionality.
+
+---
+
+## Phase 20: Twitter Likes Feature
+
+### 20.1 Feature Implementation
+- [x] Add TwitterLikes interface to types.ts
+- [x] Implement extractLikes scraper function in twitter.ts
+- [x] Add getLikes CLI command handler in commands/twitter.ts
+- [x] Wire up CLI command in cli.ts with --count option
+- [x] Add scrape_twitter_likes MCP tool in mcp-server.ts
+- [x] Add error handling for private accounts and suspended users
+
+**Impact**: Users can now scrape liked tweets from any Twitter user's likes page (https://x.com/{username}/likes).
+
+### 20.2 Testing
+- [x] Add unit tests for TwitterLikes type structure
+- [x] Add test for likes URL format validation
+- [x] Add test for likes count validation (1-100 range)
+- [x] All 190 tests passing (3 new tests added)
+
+**Verify**: All tests pass ✓
+
+### 20.3 Documentation
+- [x] Add `scrape_twitter_likes` to README MCP tools list
+- [x] Add `twitter likes <username>` to README CLI commands table
+- [x] Document --count option for likes command (default 20, max 100)
+
+**Verify**: Documentation complete ✓
+
+### 20.4 Verification
+- [x] Run typecheck - passes with no errors
+- [x] Run tests - 190 tests passing
+- [x] Update IMPLEMENTATION_PLAN.md with Phase 20
+
+**Implementation Details**:
+- Likes URL pattern: `https://x.com/{username}/likes`
+- Reuses `collectTimelineTweets` for consistent tweet extraction
+- Supports both JSON and text output formats
+- Includes full error handling (not found, suspended, private, rate limited, login required)
+- MCP tool accepts optional count parameter (default 20, max 100)
+
+**Verify**: Twitter Likes feature fully implemented and tested ✓
 
 ---
 

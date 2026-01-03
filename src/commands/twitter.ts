@@ -4,7 +4,7 @@
 
 import type { GlobalOptions, CountOptions, TwitterTweet, TwitterMetrics } from '../types.js';
 import { getPage } from '../browser.js';
-import { navigateToProfile, extractProfile, extractSearchResults, humanDelay, collectTimelineTweets, navigateToList, extractListTimeline } from '../scrapers/twitter.js';
+import { navigateToProfile, extractProfile, extractSearchResults, humanDelay, collectTimelineTweets, navigateToList, extractListTimeline, extractLikes } from '../scrapers/twitter.js';
 import { checkTwitterErrors, formatError, throwScraperError } from '../utils/index.js';
 
 /**
@@ -472,6 +472,84 @@ export async function getList(
       }
 
       console.log(`\n📊 Showing ${tweets.length} tweets${timeline.hasMore ? " (more available)" : ""}`);
+    }
+  } catch (error) {
+    const structured = formatError(error);
+    console.error(JSON.stringify(structured, null, 2));
+    process.exit(structured.code);
+  }
+}
+
+/**
+ * Get Twitter user's liked tweets
+ */
+export async function getLikes(
+  username: string,
+  count: number,
+  options: GlobalOptions
+): Promise<void> {
+  try {
+    // Validate and enforce count limits
+    const safeCount = Math.min(Math.max(count, 1), 100);
+
+    // Get the current browser page
+    const page = await getPage();
+
+    // Navigate to the likes page
+    const url = `https://x.com/${username}/likes`;
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: options.timeout });
+
+    // Small delay for content to render
+    await page.waitForTimeout(2000);
+
+    // Check for errors (profile not found, private, etc.)
+    const content = await page.content();
+    const error = checkTwitterErrors(content);
+
+    if (error) {
+      switch (error) {
+        case 'not_found':
+          throwScraperError('not_found', `Profile @${username} not found`);
+          break;
+        case 'suspended':
+          throwScraperError('suspended', `Account @${username} has been suspended`);
+          break;
+        case 'private_account':
+          throwScraperError('login_required', `Account @${username} is private`);
+          break;
+        case 'rate_limited':
+          throwScraperError('rate_limited', 'Rate limit exceeded');
+          break;
+        case 'login_required':
+          throwScraperError('login_required', 'Login required to view likes');
+          break;
+        default:
+          throwScraperError('not_found', `Could not access likes for @${username}`);
+      }
+    }
+
+    // Extract likes
+    const likes = await extractLikes(page, safeCount);
+
+    // Output
+    if (options.format === 'json') {
+      console.log(JSON.stringify(likes, null, 2));
+    } else {
+      // Text format
+      console.log(`Likes from @${likes.username}`);
+      console.log("=".repeat(80));
+
+      for (const tweet of likes.tweets) {
+        console.log(`\n@${tweet.author.username} - ${tweet.createdAt}`);
+        console.log(tweet.text);
+        if (tweet.media && tweet.media.length > 0) {
+          console.log(`📷 ${tweet.media.length} media attachment(s)`);
+        }
+        console.log(`\n${formatMetrics(tweet.metrics)}`);
+        console.log("─".repeat(80));
+      }
+
+      console.log(`\n❤️ Showing ${likes.tweets.length} liked tweets${likes.hasMore ? " (more available)" : ""}`);
     }
   } catch (error) {
     const structured = formatError(error);

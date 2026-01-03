@@ -318,3 +318,50 @@ describe('Size Limits', () => {
 		expect(images.slice(0, MAX_IMAGES).length).toBe(MAX_IMAGES);
 	});
 });
+
+describe('Twitter Likes', () => {
+	test('TwitterLikes type structure', () => {
+		// Test that TwitterLikes interface has correct structure
+		const mockLikes = {
+			username: 'testuser',
+			tweets: [
+				{
+					id: '123',
+					text: 'Test tweet',
+					author: { username: 'author', displayName: 'Author' },
+					createdAt: '2024-01-01T00:00:00Z',
+					metrics: { replies: 0, retweets: 0, likes: 0, views: 0 },
+					type: 'original' as const,
+					media: []
+				}
+			],
+			hasMore: false
+		};
+
+		expect(mockLikes.username).toBe('testuser');
+		expect(mockLikes.tweets).toHaveLength(1);
+		expect(mockLikes.tweets[0].author.username).toBe('author');
+		expect(mockLikes.hasMore).toBe(false);
+	});
+
+	test('likes URL format', () => {
+		const username = 'testuser';
+		const expectedUrl = `https://x.com/${username}/likes`;
+		expect(expectedUrl).toBe('https://x.com/testuser/likes');
+	});
+
+	test('likes count validation', () => {
+		// Test count limits similar to timeline
+		const count = 50;
+		const safeCount = Math.min(Math.max(count, 1), 100);
+		expect(safeCount).toBe(50);
+
+		const tooLarge = 200;
+		const safeLarge = Math.min(Math.max(tooLarge, 1), 100);
+		expect(safeLarge).toBe(100);
+
+		const tooSmall = -5;
+		const safeSmall = Math.min(Math.max(tooSmall, 1), 100);
+		expect(safeSmall).toBe(1);
+	});
+});

@@ -296,6 +296,60 @@ async function main() {
     }
   });
 
+  server.registerTool('scrape_twitter_likes', {
+    description: 'Get liked/favorited tweets from a Twitter user. Returns tweets that the user has liked.',
+    inputSchema: {
+      username: z.string().describe('Twitter username (without @)'),
+      count: z.number().optional().describe('Number of liked tweets to fetch (default: 20, max: 100)')
+    }
+  }, async ({ username, count = 20 }) => {
+    try {
+      const result = await withBrowser(async () => {
+        const page = await getPage();
+
+        // Navigate to likes page
+        const url = `https://x.com/${username}/likes`;
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.waitForTimeout(2000);
+
+        // Check for errors
+        const content = await page.content();
+        const error = checkTwitterErrors(content);
+
+        if (error) {
+          switch (error) {
+            case 'not_found':
+              throw new Error(`Profile @${username} not found`);
+            case 'suspended':
+              throw new Error(`Account @${username} has been suspended`);
+            case 'private_account':
+              throw new Error(`Account @${username} is private`);
+            case 'login_required':
+              throw new Error('Login to Twitter required to view likes');
+            case 'rate_limited':
+              throw new Error('Rate limited by Twitter. Please wait before trying again.');
+            default:
+              throw new Error(`Twitter error: ${error}`);
+          }
+        }
+
+        // Extract likes using extractLikes from twitter scraper
+        const { extractLikes } = await import('./scrapers/twitter.js');
+        const likes = await extractLikes(page, count);
+
+        return {
+          username: likes.username,
+          tweets: likes.tweets,
+          count: likes.tweets.length,
+          hasMore: likes.hasMore
+        };
+      });
+      return formatResult(result);
+    } catch (error) {
+      return formatError(error);
+    }
+  });
+
   // ========================================
   // LINKEDIN TOOLS
   // ========================================

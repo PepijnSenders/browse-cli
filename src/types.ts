@@ -189,6 +189,18 @@ export interface TwitterListTimeline {
   hasMore: boolean;
 }
 
+/**
+ * Twitter likes/favorites response
+ */
+export interface TwitterLikes {
+  /** Username whose likes are being fetched */
+  username: string;
+  /** Array of liked tweets */
+  tweets: TwitterTweet[];
+  /** Whether more likes are available */
+  hasMore: boolean;
+}
+
 // ============================================================================
 // LinkedIn Types
 // ============================================================================

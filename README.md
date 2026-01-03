@@ -83,6 +83,7 @@ The MCP server provides these tools:
 - `scrape_twitter_post`
 - `scrape_twitter_search`
 - `scrape_twitter_list`
+- `scrape_twitter_likes`
 - `scrape_linkedin_profile`
 - `scrape_linkedin_posts`
 - `scrape_linkedin_search`
@@ -118,6 +119,7 @@ npx @pep/session-scraper-mcp twitter profile elonmusk
 | `twitter post <url>` | Get single tweet + thread |
 | `twitter search <query>` | Search tweets |
 | `twitter list <list-id>` | Get Twitter list + tweets |
+| `twitter likes <username>` | Get user's liked tweets |
 
 ### LinkedIn
 

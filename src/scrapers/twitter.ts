@@ -967,6 +967,44 @@ export async function extractTimeline(page: Page, count = 20): Promise<TwitterTi
 }
 
 /**
+ * Extract likes/favorites from a Twitter user's likes page.
+ * Must be on https://x.com/{username}/likes page before calling.
+ *
+ * @param page - Playwright page instance (must be on likes page)
+ * @param count - Number of liked tweets to extract (default 20, max 100)
+ * @returns Twitter likes with tweets
+ *
+ * @example
+ * await page.goto('https://x.com/username/likes');
+ * const likes = await extractLikes(page, 20);
+ */
+export async function extractLikes(page: Page, count = 20): Promise<import('../types.js').TwitterLikes> {
+  // Extract username from URL
+  const url = page.url();
+  const usernameMatch = url.match(/x\.com\/([^/]+)\/likes/);
+  const username = usernameMatch ? usernameMatch[1] : '';
+
+  if (!username) {
+    throw new Error('Could not extract username from likes page URL');
+  }
+
+  // Check for errors
+  const error = await checkTwitterErrors(page);
+  if (error) {
+    throw new Error(`Twitter error: ${error}`);
+  }
+
+  // Use collectTimelineTweets to get liked tweets with pagination
+  const result = await collectTimelineTweets(page, count);
+
+  return {
+    username,
+    tweets: result.tweets,
+    hasMore: result.hasMore
+  };
+}
+
+/**
  * Extract a single post with thread context and replies.
  * Alias for extractTweetPost that matches the spec naming.
  *
