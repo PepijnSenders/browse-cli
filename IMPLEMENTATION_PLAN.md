@@ -36,21 +36,21 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 **Spec**: [specs/05-browser-connection.md](specs/05-browser-connection.md)
 
 ### 2.1 Playwriter Integration
-- [ ] Implement `connect()` via CDP WebSocket
-- [ ] Implement `getPage()` / `getPages()`
-- [ ] Implement `switchPage()`
-- [ ] Handle connection errors with helpful messages
+- [x] Implement `connect()` via CDP WebSocket
+- [x] Implement `getPage()` / `getPages()`
+- [x] Implement `switchPage()`
+- [x] Handle connection errors with helpful messages
 
-**Verify**: With Playwriter active, `session-scraper browser list` returns tabs
+**Verify**: With Playwriter active, `session-scraper browser list` returns tabs ✓
 
 ### 2.2 Browser Commands
-- [ ] `browser navigate <url>`
-- [ ] `browser info`
-- [ ] `browser list`
-- [ ] `browser switch <index>`
-- [ ] `browser screenshot`
+- [x] `browser navigate <url>`
+- [x] `browser info`
+- [x] `browser list`
+- [x] `browser switch <index>`
+- [x] `browser screenshot`
 
-**Verify**: All browser commands work with live Chrome
+**Verify**: All browser commands work with live Chrome ✓
 
 ---
 
@@ -218,7 +218,7 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 | Phase | Status |
 |-------|--------|
 | 1. Project Setup | ✓ Completed |
-| 2. Browser Connection | Not Started |
+| 2. Browser Connection | ✓ Completed |
 | 3. Generic Scraping | Not Started |
 | 4. Twitter Scraper | Not Started |
 | 5. LinkedIn Scraper | Not Started |

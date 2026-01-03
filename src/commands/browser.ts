@@ -2,27 +2,62 @@
  * Browser command handlers
  */
 
-import type { GlobalOptions, ScreenshotOptions } from '../types.js';
+import * as browserModule from '../browser.js';
+import type { GlobalOptions, ScreenshotOptions, NavigationResult, PageInfo, PagesList } from '../types.js';
+import { writeFileSync } from 'node:fs';
 
 /**
  * Navigate to a URL
  */
 export async function navigate(
-  _url: string,
-  _options: GlobalOptions
+  url: string,
+  options: GlobalOptions
 ): Promise<void> {
-  // TODO: Implement browser navigation
-  throw new Error('Not implemented yet');
+  const page = await browserModule.getPage();
+
+  await page.goto(url, {
+    timeout: options.timeout,
+    waitUntil: 'domcontentloaded'
+  });
+
+  const result: NavigationResult = {
+    success: true,
+    url: page.url(),
+    title: await page.title()
+  };
+
+  console.log(JSON.stringify(result, null, 2));
 }
 
 /**
  * Take a screenshot
  */
 export async function screenshot(
-  _options: GlobalOptions & ScreenshotOptions
+  options: GlobalOptions & ScreenshotOptions
 ): Promise<void> {
-  // TODO: Implement screenshot
-  throw new Error('Not implemented yet');
+  const page = await browserModule.getPage();
+
+  const screenshotBuffer = await page.screenshot({
+    fullPage: options.fullPage,
+    type: 'png'
+  });
+
+  if (options.output) {
+    // Save to file
+    writeFileSync(options.output, screenshotBuffer);
+    console.log(JSON.stringify({
+      success: true,
+      file: options.output,
+      fullPage: options.fullPage
+    }, null, 2));
+  } else {
+    // Output as base64 to stdout
+    const base64Data = screenshotBuffer.toString('base64');
+    console.log(JSON.stringify({
+      data: base64Data,
+      fullPage: options.fullPage
+    }, null, 2));
+  }
 }
 
 /**
@@ -31,8 +66,14 @@ export async function screenshot(
 export async function info(
   _options: GlobalOptions
 ): Promise<void> {
-  // TODO: Implement page info
-  throw new Error('Not implemented yet');
+  const pageInfo = await browserModule.getPageInfo();
+
+  const result: PageInfo = {
+    url: pageInfo.url,
+    title: pageInfo.title
+  };
+
+  console.log(JSON.stringify(result, null, 2));
 }
 
 /**
@@ -41,17 +82,34 @@ export async function info(
 export async function list(
   _options: GlobalOptions
 ): Promise<void> {
-  // TODO: Implement browser list
-  throw new Error('Not implemented yet');
+  const pages = await browserModule.listPages();
+
+  // Find current page index by comparing with active page
+  const currentPage = await browserModule.getPage();
+  const currentUrl = currentPage.url();
+  const currentIndex = pages.findIndex(p => p.url === currentUrl);
+
+  const result: PagesList = {
+    pages: pages,
+    current: currentIndex !== -1 ? currentIndex : 0
+  };
+
+  console.log(JSON.stringify(result, null, 2));
 }
 
 /**
  * Switch to a different tab
  */
 export async function switchTab(
-  _index: number,
+  index: number,
   _options: GlobalOptions
 ): Promise<void> {
-  // TODO: Implement tab switching
-  throw new Error('Not implemented yet');
+  const page = await browserModule.switchPage(index);
+
+  const result: PageInfo = {
+    url: page.url(),
+    title: await page.title()
+  };
+
+  console.log(JSON.stringify(result, null, 2));
 }
