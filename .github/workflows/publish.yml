@@ -1,4 +1,7 @@
-name: Publish to npm
+name: Publish to npm (on release)
+
+# This workflow runs when a GitHub Release is published manually
+# For automated releases, use the Release workflow instead
 
 on:
   release:
@@ -35,7 +38,7 @@ jobs:
         run: bun run build
 
       - name: Verify CLI executable
-        run: ./dist/index.js --help
+        run: ./dist/cli.js --help
 
       - name: Publish to npm
         run: npm publish --access public

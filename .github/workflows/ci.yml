@@ -32,8 +32,8 @@ jobs:
 
       - name: Verify build output
         run: |
-          test -f dist/index.js || exit 1
+          test -f dist/cli.js || exit 1
           echo "Build successful"
 
       - name: Verify CLI executable
-        run: ./dist/index.js --help
+        run: ./dist/cli.js --help

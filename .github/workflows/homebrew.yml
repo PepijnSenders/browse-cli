@@ -1,0 +1,94 @@
+name: Update Homebrew Formula
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update formula for (e.g., 1.0.1)'
+        required: true
+        type: string
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get npm package SHA256
+        id: sha
+        run: |
+          SHA=$(curl -sL "https://registry.npmjs.org/browse-cli/-/browse-cli-${{ inputs.version }}.tgz" | shasum -a 256 | cut -d' ' -f1)
+          echo "sha256=$SHA" >> $GITHUB_OUTPUT
+          echo "SHA256: $SHA"
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: PepijnSenders/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        run: |
+          cd homebrew-tap
+          mkdir -p Formula
+
+          cat > Formula/browse.rb << 'EOF'
+          class Browse < Formula
+            desc "Scrape any webpage to markdown using your browser session"
+            homepage "https://github.com/PepijnSenders/browse-cli"
+            url "https://registry.npmjs.org/browse-cli/-/browse-cli-${{ inputs.version }}.tgz"
+            sha256 "${{ steps.sha.outputs.sha256 }}"
+            license "MIT"
+
+            depends_on "node"
+
+            def install
+              system "npm", "install", *Language::Node.std_npm_install_args(libexec)
+              bin.install_symlink Dir["#{libexec}/bin/*"]
+            end
+
+            def caveats
+              <<~EOS
+                To use browse, you need to install the Chrome extension:
+
+                1. Open chrome://extensions in Chrome
+                2. Enable "Developer mode" (top right)
+                3. Click "Load unpacked"
+                4. Select: #{opt_libexec}/lib/node_modules/browse-cli/extension
+
+                Then start the daemon:
+                  browse init
+
+                And scrape any page:
+                  browse https://example.com
+              EOS
+            end
+
+            test do
+              assert_match "browse", shell_output("#{bin}/browse --help")
+              assert_match "${{ inputs.version }}", shell_output("#{bin}/browse --version")
+            end
+          end
+          EOF
+
+      - name: Commit and push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/browse.rb
+          git commit -m "Update browse to ${{ inputs.version }}"
+          git push
+
+      - name: Summary
+        run: |
+          echo "## Homebrew Formula Updated! 🍺" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- SHA256: ${{ steps.sha.outputs.sha256 }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Users can now install with:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "brew tap pepijnsenders/tap" >> $GITHUB_STEP_SUMMARY
+          echo "brew install browse" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
