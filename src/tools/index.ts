@@ -5,6 +5,14 @@ import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { getPage, getPages, switchPage } from '../browser.js';
+import {
+  navigate,
+  getPageInfo,
+  takeScreenshot,
+  scrapePage,
+  executeScript,
+} from '../scrapers/generic.js';
 
 /**
  * Tool Input Schemas
@@ -314,85 +322,125 @@ const schemaMap = {
 } as const;
 
 /**
- * Tool Handlers (Stubs for now)
+ * Tool Handlers - Browser Tools (Phase 2)
  */
 
 async function handleNavigate(args: z.infer<typeof navigateSchema>) {
+  const page = await getPage();
+  const result = await navigate(page, args.url);
+
   return {
     content: [
       {
         type: 'text',
-        text: `Not implemented yet: navigate to ${args.url}`,
+        text: JSON.stringify(result, null, 2),
       },
     ],
   };
 }
 
 async function handleGetPageInfo(_args: z.infer<typeof getPageInfoSchema>) {
+  const page = await getPage();
+  const info = await getPageInfo(page);
+
   return {
     content: [
       {
         type: 'text',
-        text: 'Not implemented yet: get_page_info',
+        text: JSON.stringify(info, null, 2),
       },
     ],
   };
 }
 
 async function handleListPages(_args: z.infer<typeof listPagesSchema>) {
+  const pages = await getPages();
+
+  const pageList = await Promise.all(
+    pages.map(async (page, index) => ({
+      index,
+      url: page.url(),
+      title: await page.title(),
+    }))
+  );
+
   return {
     content: [
       {
         type: 'text',
-        text: 'Not implemented yet: list_pages',
+        text: JSON.stringify({ pages: pageList }, null, 2),
       },
     ],
   };
 }
 
 async function handleSwitchPage(args: z.infer<typeof switchPageSchema>) {
+  const page = await switchPage(args.index);
+  const info = await getPageInfo(page);
+
   return {
     content: [
       {
         type: 'text',
-        text: `Not implemented yet: switch to page ${args.index}`,
+        text: JSON.stringify({
+          success: true,
+          ...info,
+        }, null, 2),
       },
     ],
   };
 }
 
 async function handleTakeScreenshot(args: z.infer<typeof takeScreenshotSchema>) {
+  const page = await getPage();
+  const screenshot = await takeScreenshot(page, args.fullPage ?? false);
+
   return {
     content: [
       {
-        type: 'text',
-        text: `Not implemented yet: take screenshot (fullPage: ${args.fullPage ?? false})`,
+        type: 'image',
+        data: screenshot.toString('base64'),
+        mimeType: 'image/png',
       },
     ],
   };
 }
 
+/**
+ * Tool Handlers - Generic Tools (Phase 3)
+ */
+
 async function handleScrapePage(args: z.infer<typeof scrapePageSchema>) {
+  const page = await getPage();
+  const content = await scrapePage(page, args.selector);
+
   return {
     content: [
       {
         type: 'text',
-        text: `Not implemented yet: scrape page${args.selector ? ` with selector "${args.selector}"` : ''}`,
+        text: JSON.stringify(content, null, 2),
       },
     ],
   };
 }
 
 async function handleExecuteScript(args: z.infer<typeof executeScriptSchema>) {
+  const page = await getPage();
+  const result = await executeScript(page, args.script);
+
   return {
     content: [
       {
         type: 'text',
-        text: `Not implemented yet: execute script (${args.script.length} chars)`,
+        text: JSON.stringify(result, null, 2),
       },
     ],
   };
 }
+
+/**
+ * Tool Handlers - Twitter Tools (Phase 4) - Stubs
+ */
 
 async function handleScrapeTwitterProfile(args: z.infer<typeof scrapeTwitterProfileSchema>) {
   return {
@@ -437,6 +485,10 @@ async function handleScrapeTwitterSearch(args: z.infer<typeof scrapeTwitterSearc
     ],
   };
 }
+
+/**
+ * Tool Handlers - LinkedIn Tools (Phase 5) - Stubs
+ */
 
 async function handleScrapeLinkedInProfile(args: z.infer<typeof scrapeLinkedInProfileSchema>) {
   return {
@@ -540,11 +592,21 @@ export function registerTools(server: Server) {
     try {
       return await handler(validatedArgs as never);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Provide helpful error messages for common issues
+      let userMessage = errorMessage;
+      if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('connect')) {
+        userMessage = 'Extension not connected. Make sure:\n1. Chrome has the Playwriter extension installed\n2. The extension is enabled (click the icon on a tab)\n3. The relay server is running';
+      } else if (errorMessage.includes('No pages available')) {
+        userMessage = 'No pages available for control. Click the Playwriter extension icon on a Chrome tab to enable it.';
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+            text: `Error: ${userMessage}`,
           },
         ],
         isError: true,

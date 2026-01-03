@@ -57,36 +57,36 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
 **Spec Reference:** [specs/02-mcp-tools.md](specs/02-mcp-tools.md) (Browser Tools section)
 
 ### 2.1 Navigation
-- [ ] `navigate` - Navigate to URL
+- [x] `navigate` - Navigate to URL
   - Input: `{ url: string }`
   - Output: `{ success, url, title }`
   - Validate URL format
   - Handle timeouts
 
-**Verify:** `navigate` to `https://example.com` returns `{ success: true, url: "https://example.com/", title: "Example Domain" }`
+**Verify:** `navigate` to `https://example.com` returns `{ success: true, url: "https://example.com/", title: "Example Domain" }` ✓
 
 ### 2.2 Page Info
-- [ ] `get_page_info` - Get current page URL/title
+- [x] `get_page_info` - Get current page URL/title
   - Input: `{}`
   - Output: `{ url, title }`
 
-- [ ] `list_pages` - List all controlled tabs
+- [x] `list_pages` - List all controlled tabs
   - Input: `{}`
   - Output: `{ pages: [{ index, url, title }] }`
 
-- [ ] `switch_page` - Switch to different tab
+- [x] `switch_page` - Switch to different tab
   - Input: `{ index: number }`
   - Output: `{ success, url, title }`
 
-**Verify:** Open 2 tabs with Playwriter, `list_pages` returns 2 entries, `switch_page` changes active tab
+**Verify:** Open 2 tabs with Playwriter, `list_pages` returns 2 entries, `switch_page` changes active tab ✓
 
 ### 2.3 Screenshot
-- [ ] `take_screenshot` - Capture page screenshot
+- [x] `take_screenshot` - Capture page screenshot
   - Input: `{ fullPage?: boolean }`
   - Output: Base64 PNG image content block
   - Handle viewport vs full page
 
-**Verify:** `take_screenshot` returns valid base64 PNG that decodes to an image
+**Verify:** `take_screenshot` returns valid base64 PNG that decodes to an image ✓
 
 ---
 
@@ -95,7 +95,7 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
 **Spec Reference:** [specs/05-generic-scraper.md](specs/05-generic-scraper.md)
 
 ### 3.1 Page Scraping
-- [ ] `scrape_page` - Extract text/links/images from page
+- [x] `scrape_page` - Extract text/links/images from page
   - Input: `{ selector?: string }`
   - Output: `{ url, title, text, links, images }`
   - Default: scrape main content
@@ -103,16 +103,16 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
   - Implement content cleaning/normalization
   - Limit output sizes (100 links, 50 images, 100k chars)
 
-**Verify:** On `https://news.ycombinator.com`, `scrape_page` returns text containing "Hacker News" and links array with entries
+**Verify:** On `https://news.ycombinator.com`, `scrape_page` returns text containing "Hacker News" and links array with entries ✓
 
 ### 3.2 Custom Scripts
-- [ ] `execute_script` - Run custom JavaScript
+- [x] `execute_script` - Run custom JavaScript
   - Input: `{ script: string }`
   - Output: Script return value (JSON-serializable)
   - Wrap in async IIFE for await support
   - Size limit on output (1MB)
 
-**Verify:** `execute_script` with `return document.title` returns page title string
+**Verify:** `execute_script` with `return document.title` returns page title string ✓
 
 ---
 
@@ -304,8 +304,8 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
 | Phase | Status |
 |-------|--------|
 | 1. Foundation | Complete |
-| 2. Browser Tools | Not Started |
-| 3. Generic Scraping | Not Started |
+| 2. Browser Tools | Complete |
+| 3. Generic Scraping | Complete |
 | 4. Twitter Scraper | Not Started |
 | 5. LinkedIn Scraper | Not Started |
 | 6. Error Handling | Not Started |
