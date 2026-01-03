@@ -234,6 +234,63 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 
 ---
 
+## Phase 10: MCP Server Implementation
+
+**Spec**: Model Context Protocol integration
+
+### 10.1 MCP Server Core
+- [x] Create MCP server entry point (src/mcp-server.ts)
+- [x] Integrate @modelcontextprotocol/sdk
+- [x] Setup stdio transport for MCP communication
+- [x] Implement tool registration framework
+- [x] Add error handling and formatting for MCP responses
+
+**Verify**: MCP server builds and starts without errors ✓
+
+### 10.2 MCP Tools - Twitter
+- [x] `scrape_twitter_profile` - Get user profiles
+- [x] `scrape_twitter_timeline` - Get timeline tweets
+- [x] `scrape_twitter_post` - Get single tweet with context
+- [x] `scrape_twitter_search` - Search tweets
+
+**Verify**: All Twitter MCP tools properly wrap scraper functions ✓
+
+### 10.3 MCP Tools - LinkedIn
+- [x] `scrape_linkedin_profile` - Get LinkedIn profiles
+- [x] `scrape_linkedin_posts` - Get user posts
+- [x] `scrape_linkedin_search` - Search people/companies
+
+**Verify**: All LinkedIn MCP tools properly wrap scraper functions ✓
+
+### 10.4 MCP Tools - Browser & Page
+- [x] `navigate` - Navigate to URLs
+- [x] `take_screenshot` - Capture screenshots
+- [x] `get_page_info` - Get current page info
+- [x] `list_pages` - List controlled tabs
+- [x] `switch_page` - Switch between tabs
+- [x] `scrape_page` - Extract page content
+- [x] `execute_script` - Run custom JavaScript
+
+**Verify**: All browser and page MCP tools working ✓
+
+### 10.5 Build System Updates
+- [x] Update package.json with dual entry points
+- [x] Configure separate builds for CLI and MCP server
+- [x] Ensure both binaries have proper shebangs
+- [x] Test both builds produce working executables
+
+**Verify**: `npm run build` produces both cli.js and mcp-server.js ✓
+
+### 10.6 Documentation Updates
+- [x] Update README with MCP server usage
+- [x] Add MCP configuration examples
+- [x] Document all MCP tools
+- [x] Update installation instructions
+
+**Verify**: README accurately describes both CLI and MCP usage ✓
+
+---
+
 ## Implementation Status
 
 | Phase | Status |
@@ -247,6 +304,7 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 | 7. Skill Definition | ✓ Completed |
 | 8. Testing | ✓ Completed (Unit Tests) |
 | 9. Publishing | ✓ Completed (All features) |
+| 10. MCP Server | ✓ Completed |
 
 ---
 

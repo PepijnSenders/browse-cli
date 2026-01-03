@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "description": "MCP server for scraping sites using your existing browser session (Twitter, LinkedIn, etc.)",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/mcp-server.js",
   "bin": {
-    "session-scraper": "./dist/index.js"
+    "session-scraper": "./dist/cli.js",
+    "session-scraper-mcp": "./dist/mcp-server.js"
   },
   "repository": {
     "type": "git",
@@ -24,7 +25,10 @@
   ],
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target node --minify --external electron --external chromium-bidi && echo '#!/usr/bin/env node' | cat - dist/index.js > dist/index.tmp && mv dist/index.tmp dist/index.js && chmod +x dist/index.js",
+    "dev:mcp": "bun run src/mcp-server.ts",
+    "build": "npm run build:cli && npm run build:mcp",
+    "build:cli": "bun build src/index.ts --outdir dist --target node --minify --external electron --external chromium-bidi && echo '#!/usr/bin/env node' | cat - dist/index.js > dist/index.tmp && mv dist/index.tmp dist/cli.js && rm -f dist/index.js && chmod +x dist/cli.js",
+    "build:mcp": "bun build src/mcp-server.ts --outdir dist --target node --minify --external electron --external chromium-bidi && echo '#!/usr/bin/env node' | cat - dist/mcp-server.js > dist/mcp-server.tmp && mv dist/mcp-server.tmp dist/mcp-server.js && chmod +x dist/mcp-server.js",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "bunx 0xc .",

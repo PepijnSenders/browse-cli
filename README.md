@@ -1,6 +1,6 @@
-# Session Scraper MCP
+# Session Scraper
 
-**MCP server for scraping "uncrawlable" sites using your existing browser session**
+**MCP Server & CLI tool for scraping "uncrawlable" sites using your existing browser session**
 
 Scrape Twitter, LinkedIn, and other sites that block traditional scrapers - using your own logged-in browser session.
 
@@ -13,10 +13,10 @@ Your Chrome Browser (logged into Twitter, LinkedIn, etc.)
    Playwriter Extension (enables tab control)
          │
          ▼
-   Session Scraper MCP (this project)
+   Session Scraper MCP Server / CLI
          │
          ▼
-   Claude Code / AI Agent
+   Claude Code / Terminal / Scripts
 ```
 
 No API keys. No rate limits. No bot detection. Just your normal browser session.
@@ -34,9 +34,24 @@ No API keys. No rate limits. No bot detection. Just your normal browser session.
 
 [Install from Chrome Web Store](https://chromewebstore.google.com/detail/playwriter-mcp/jfeammnjpkecdekppnclgkkffahnhfhe)
 
-### 2. Add to MCP Client
+### 2. Install Package
 
-Add to your Claude Code or MCP client config:
+```bash
+# Global install
+npm install -g @pep/session-scraper-mcp
+```
+
+### 3. Enable on Tabs
+
+Click the Playwriter extension icon on tabs you want to control (icon turns green).
+
+## Usage
+
+This package provides both an **MCP server** and a **CLI tool**.
+
+### As MCP Server
+
+Use with Claude Code or other MCP clients by adding to your MCP configuration:
 
 ```json
 {
@@ -49,47 +64,85 @@ Add to your Claude Code or MCP client config:
 }
 ```
 
-### 3. Enable on Tabs
+Or if globally installed:
 
-Click the Playwriter extension icon on tabs you want to control (icon turns green).
+```json
+{
+  "mcpServers": {
+    "session-scraper": {
+      "command": "session-scraper-mcp"
+    }
+  }
+}
+```
 
-## Tools
+The MCP server provides these tools:
+
+- `scrape_twitter_profile`
+- `scrape_twitter_timeline`
+- `scrape_twitter_post`
+- `scrape_twitter_search`
+- `scrape_linkedin_profile`
+- `scrape_linkedin_posts`
+- `scrape_linkedin_search`
+- `navigate`
+- `take_screenshot`
+- `get_page_info`
+- `list_pages`
+- `switch_page`
+- `scrape_page`
+- `execute_script`
+
+### As CLI Tool
+
+Run commands directly from your terminal:
+
+```bash
+# Use the CLI
+session-scraper twitter profile elonmusk
+session-scraper linkedin profile "https://linkedin.com/in/someone"
+
+# Or with npx
+npx @pep/session-scraper-mcp twitter profile elonmusk
+```
+
+## Commands
 
 ### Twitter/X
 
-| Tool | Description |
-|------|-------------|
-| `scrape_twitter_profile` | Get user profile info |
-| `scrape_twitter_timeline` | Get tweets from user/home |
-| `scrape_twitter_post` | Get single tweet + thread |
-| `scrape_twitter_search` | Search tweets |
+| Command | Description |
+|---------|-------------|
+| `twitter profile <username>` | Get user profile info |
+| `twitter timeline [username]` | Get tweets from user/home |
+| `twitter post <url>` | Get single tweet + thread |
+| `twitter search <query>` | Search tweets |
 
 ### LinkedIn
 
-| Tool | Description |
-|------|-------------|
-| `scrape_linkedin_profile` | Get profile info |
-| `scrape_linkedin_posts` | Get user's posts |
-| `scrape_linkedin_search` | Search people/companies |
+| Command | Description |
+|---------|-------------|
+| `linkedin profile <url>` | Get profile info |
+| `linkedin posts <url>` | Get user's posts |
+| `linkedin search <query>` | Search people/companies |
 
 ### Browser
 
-| Tool | Description |
-|------|-------------|
-| `navigate` | Go to URL |
-| `take_screenshot` | Screenshot page |
-| `get_page_info` | Get current URL/title |
-| `list_pages` | List controlled tabs |
-| `switch_page` | Switch active tab |
+| Command | Description |
+|---------|-------------|
+| `browser navigate <url>` | Go to URL |
+| `browser screenshot` | Screenshot page |
+| `browser info` | Get current URL/title |
+| `browser list` | List controlled tabs |
+| `browser switch <index>` | Switch active tab |
 
-### Generic
+### Page
 
-| Tool | Description |
-|------|-------------|
-| `scrape_page` | Extract text/links/images |
-| `execute_script` | Run custom JavaScript |
+| Command | Description |
+|---------|-------------|
+| `page scrape` | Extract text/links/images |
+| `page script <code>` | Run custom JavaScript |
 
-## Tool Reference
+## Command Reference
 
 ### Twitter Tools
 
