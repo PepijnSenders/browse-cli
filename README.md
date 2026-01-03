@@ -7,6 +7,10 @@
 
 No API keys. No rate limits. No bot detection. Uses your actual browser session.
 
+<p align="center">
+  <img src="assets/demo.gif" alt="browse-cli demo" width="600">
+</p>
+
 ## How It Works
 
 ```
