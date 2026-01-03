@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Browse",
+  "description": "Browser extension for the browse CLI - scrape any webpage to markdown",
+  "version": "1.0.0",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Browse - Click to reconnect"
+  }
+}

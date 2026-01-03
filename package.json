@@ -1,23 +1,23 @@
 {
-  "name": "@pep/session-scraper-mcp",
-  "version": "0.1.0",
-  "description": "MCP server for scraping sites using your existing browser session (Twitter, LinkedIn, etc.)",
+  "name": "browse-cli",
+  "version": "1.0.0",
+  "description": "Scrape any webpage to markdown using your browser session",
   "type": "module",
-  "main": "dist/mcp-server.js",
+  "main": "dist/cli.js",
   "bin": {
-    "session-scraper": "./dist/cli.js",
-    "session-scraper-mcp": "./dist/mcp-server.js"
+    "browse": "./dist/cli.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PepijnSenders/x-cli.git"
+    "url": "git+https://github.com/PepijnSenders/browse-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/PepijnSenders/x-cli/issues"
+    "url": "https://github.com/PepijnSenders/browse-cli/issues"
   },
-  "homepage": "https://github.com/PepijnSenders/x-cli#readme",
+  "homepage": "https://github.com/PepijnSenders/browse-cli#readme",
   "files": [
     "dist",
+    "extension",
     "skill",
     ".claude-plugin",
     "README.md",
@@ -25,24 +25,24 @@
   ],
   "scripts": {
     "dev": "bun run src/index.ts",
-    "dev:mcp": "bun run src/mcp-server.ts",
-    "build": "npm run build:cli && npm run build:mcp",
-    "build:cli": "bun build src/index.ts --outdir dist --target node --minify --external electron --external chromium-bidi && echo '#!/usr/bin/env node' | cat - dist/index.js > dist/index.tmp && mv dist/index.tmp dist/cli.js && rm -f dist/index.js && chmod +x dist/cli.js",
-    "build:mcp": "bun build src/mcp-server.ts --outdir dist --target node --minify --external electron --external chromium-bidi && echo '#!/usr/bin/env node' | cat - dist/mcp-server.js > dist/mcp-server.tmp && mv dist/mcp-server.tmp dist/mcp-server.js && chmod +x dist/mcp-server.js",
+    "build": "bun build src/index.ts --outdir dist --target node --minify --external electron --external chromium-bidi && echo '#!/usr/bin/env node' | cat - dist/index.js > dist/index.tmp && mv dist/index.tmp dist/cli.js && rm -f dist/index.js && chmod +x dist/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "bunx 0xc .",
-    "format": "bunx 0xc --fix ."
+    "format": "bunx 0xc --fix .",
+    "prepublishOnly": "bun run typecheck && bun test && bun run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.1",
     "commander": "^14.0.2",
-    "playwright-core": "^1.49.1",
-    "playwriter": "^0.0.34",
-    "zod": "^3.24.1"
+    "linkedom": "^0.18.12",
+    "turndown": "^7.2.2",
+    "turndown-plugin-gfm": "^1.0.2",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@types/bun": "^1.1.16",
+    "@types/turndown": "^5.0.6",
+    "@types/ws": "^8.18.1",
     "happy-dom": "^20.0.11",
     "typescript": "^5.7.3"
   },
@@ -52,13 +52,11 @@
   "author": "PepijnSenders",
   "license": "MIT",
   "keywords": [
-    "mcp",
     "scraper",
-    "twitter",
-    "linkedin",
+    "markdown",
     "browser",
-    "session",
-    "playwright",
-    "playwriter"
+    "chrome-extension",
+    "websocket",
+    "cli"
   ]
 }

@@ -1,9 +1,9 @@
 /**
- * Utility functions for parsing numbers and text from social media platforms.
+ * Utility functions for parsing numbers and text.
  */
 
 /**
- * Parse Twitter-style numbers with K/M suffixes.
+ * Parse numbers with K/M/B suffixes (common on social media).
  *
  * Examples:
  * - "12.5K" → 12500
@@ -14,7 +14,7 @@
  * @param text - The text to parse (e.g., "12.5K", "1.2M", "1,234")
  * @returns The parsed number, or 0 if parsing fails
  */
-export function parseTwitterNumber(text: string): number {
+export function parseNumber(text: string): number {
   if (!text || typeof text !== 'string') {
     return 0;
   }
@@ -41,36 +41,18 @@ export function parseTwitterNumber(text: string): number {
 }
 
 /**
- * Parse LinkedIn duration format: "Jan 2020 - Present · 4 yrs 2 mos"
- *
- * @param text - The duration text from LinkedIn
- * @returns Object with dateRange and duration separated
- */
-export function parseLinkedInDuration(text: string): { dateRange: string; duration: string } {
-  if (!text || typeof text !== 'string') {
-    return { dateRange: '', duration: '' };
-  }
-
-  const parts = text.split('·').map(s => s.trim());
-
-  return {
-    dateRange: parts[0] || '',
-    duration: parts[1] || ''
-  };
-}
-
-/**
- * Parse a date string from Twitter (relative or absolute).
+ * Parse a relative date string (e.g., "2h", "5m", "1d").
  *
  * Examples:
  * - "2h" → 2 hours ago
- * - "Jan 15" → January 15 of current or previous year
+ * - "5m" → 5 minutes ago
+ * - "1d" → 1 day ago
  * - "Jan 15, 2023" → January 15, 2023
  *
- * @param text - The date text from Twitter
+ * @param text - The date text
  * @returns ISO 8601 date string, or null if parsing fails
  */
-export function parseTwitterDate(text: string): string | null {
+export function parseRelativeDate(text: string): string | null {
   if (!text || typeof text !== 'string') {
     return null;
   }
@@ -149,59 +131,4 @@ export function truncateText(text: string, maxLength: number): string {
   }
 
   return text.slice(0, maxLength - 3) + '...';
-}
-
-/**
- * Extract username from Twitter URL or handle.
- *
- * Examples:
- * - "https://x.com/elonmusk" → "elonmusk"
- * - "@elonmusk" → "elonmusk"
- * - "elonmusk" → "elonmusk"
- *
- * @param input - URL or username
- * @returns Username without @ symbol
- */
-export function extractTwitterUsername(input: string): string | null {
-  if (!input || typeof input !== 'string') {
-    return null;
-  }
-
-  // Remove @ prefix
-  let cleaned = input.trim();
-  if (cleaned.startsWith('@')) {
-    cleaned = cleaned.slice(1);
-  }
-
-  // Extract from URL
-  const urlMatch = cleaned.match(/(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)/);
-  if (urlMatch) {
-    return urlMatch[1];
-  }
-
-  // Return as-is if it looks like a valid username
-  if (/^[a-zA-Z0-9_]+$/.test(cleaned)) {
-    return cleaned;
-  }
-
-  return null;
-}
-
-/**
- * Extract LinkedIn profile slug from URL.
- *
- * Examples:
- * - "https://linkedin.com/in/satyanadella" → "satyanadella"
- * - "https://www.linkedin.com/in/satyanadella/" → "satyanadella"
- *
- * @param input - LinkedIn profile URL
- * @returns Profile slug
- */
-export function extractLinkedInSlug(input: string): string | null {
-  if (!input || typeof input !== 'string') {
-    return null;
-  }
-
-  const match = input.match(/linkedin\.com\/in\/([a-zA-Z0-9-]+)/);
-  return match ? match[1] : null;
 }

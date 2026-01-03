@@ -1,329 +1,255 @@
-# Session Scraper
+# browse
 
-**MCP Server & CLI tool for scraping "uncrawlable" sites using your existing browser session**
+**Scrape any webpage to markdown using your browser session**
 
-Scrape Twitter, LinkedIn, and other sites that block traditional scrapers - using your own logged-in browser session.
+[![npm version](https://img.shields.io/npm/v/browse-cli.svg)](https://www.npmjs.com/package/browse-cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+No API keys. No rate limits. No bot detection. Uses your actual browser session.
 
 ## How It Works
 
 ```
-Your Chrome Browser (logged into Twitter, LinkedIn, etc.)
-         │
-         ▼
-   Playwriter Extension (enables tab control)
-         │
-         ▼
-   Session Scraper MCP Server / CLI
-         │
-         ▼
-   Claude Code / Terminal / Scripts
+Chrome Browser (with your logins)
+        │
+        ▼
+  Browse Extension ←──→ WebSocket Daemon (port 9222)
+        │                      │
+        ▼                      ▼
+   Page Content           browse CLI
+        │                      │
+        └──────────────────────┘
+                  │
+                  ▼
+            Markdown Output
 ```
 
-No API keys. No rate limits. No bot detection. Just your normal browser session.
-
-## Features
-
-- **Twitter/X** - Profiles, timelines, posts, search
-- **LinkedIn** - Profiles, posts, people search
-- **Any site** - Generic scraping, screenshots, custom scripts
-- **Your session** - Uses your existing logins, no credentials needed
+The Browse extension connects your authenticated browser sessions to the CLI via a local WebSocket daemon. This lets you scrape any page you can see in your browser - including sites that require login.
 
 ## Installation
 
-### 1. Install Playwriter Extension
-
-[Install from Chrome Web Store](https://chromewebstore.google.com/detail/playwriter-mcp/jfeammnjpkecdekppnclgkkffahnhfhe)
-
-### 2. Install Package
+### npm (recommended)
 
 ```bash
-# Global install
-npm install -g @pep/session-scraper-mcp
+npm install -g browse-cli
 ```
 
-### 3. Enable on Tabs
+### Homebrew
 
-Click the Playwriter extension icon on tabs you want to control (icon turns green).
+```bash
+brew tap pepijnsenders/tap
+brew install browse
+```
+
+### From source
+
+```bash
+git clone https://github.com/PepijnSenders/browse-cli
+cd browse-cli
+bun install
+bun run build
+npm link
+```
+
+## Quick Start
+
+### 1. Install the Chrome Extension
+
+1. Open `chrome://extensions` in Chrome
+2. Enable "Developer mode" (top right)
+3. Click "Load unpacked"
+4. Select the `extension/` folder from this package
+
+To find the extension folder after npm install:
+```bash
+npm root -g  # Shows global node_modules path
+# Extension is at: <path>/browse-cli/extension
+```
+
+### 2. Start the Daemon
+
+```bash
+browse init
+```
+
+### 3. Scrape Any Page
+
+```bash
+browse https://example.com
+```
 
 ## Usage
 
-This package provides both an **MCP server** and a **CLI tool**.
-
-### As MCP Server
-
-Use with Claude Code or other MCP clients by adding to your MCP configuration:
-
-```json
-{
-  "mcpServers": {
-    "session-scraper": {
-      "command": "npx",
-      "args": ["@pep/session-scraper-mcp"]
-    }
-  }
-}
-```
-
-Or if globally installed:
-
-```json
-{
-  "mcpServers": {
-    "session-scraper": {
-      "command": "session-scraper-mcp"
-    }
-  }
-}
-```
-
-The MCP server provides these tools:
-
-- `scrape_twitter_profile`
-- `scrape_twitter_timeline`
-- `scrape_twitter_post`
-- `scrape_twitter_search`
-- `scrape_twitter_list`
-- `scrape_twitter_likes`
-- `scrape_linkedin_profile`
-- `scrape_linkedin_posts`
-- `scrape_linkedin_search`
-- `navigate`
-- `take_screenshot`
-- `get_page_info`
-- `list_pages`
-- `switch_page`
-- `scrape_page`
-- `execute_script`
-
-### As CLI Tool
-
-Run commands directly from your terminal:
-
 ```bash
-# Use the CLI
-session-scraper twitter profile elonmusk
-session-scraper linkedin profile "https://linkedin.com/in/someone"
+# Basic usage - outputs markdown
+browse <url>
 
-# Or with npx
-npx @pep/session-scraper-mcp twitter profile elonmusk
+# Output JSON with metadata (url, title, content)
+browse <url> --json
+
+# Output pruned HTML instead of markdown
+browse <url> --html
+
+# Wait longer for dynamic content (default: 2000ms)
+browse <url> --wait 5000
+
+# Scroll for infinite-scroll pages
+browse <url> --scroll 3
 ```
 
 ## Commands
 
-### Twitter/X
-
 | Command | Description |
 |---------|-------------|
-| `twitter profile <username>` | Get user profile info |
-| `twitter timeline [username]` | Get tweets from user/home |
-| `twitter post <url>` | Get single tweet + thread |
-| `twitter search <query>` | Search tweets |
-| `twitter list <list-id>` | Get Twitter list + tweets |
-| `twitter likes <username>` | Get user's liked tweets |
+| `browse <url>` | Scrape URL and output markdown |
+| `browse init` | Start the WebSocket daemon |
+| `browse stop` | Stop the daemon |
+| `browse --help` | Show help |
+| `browse --version` | Show version |
 
-### LinkedIn
+## Options
 
-| Command | Description |
-|---------|-------------|
-| `linkedin profile <url>` | Get profile info |
-| `linkedin posts <url>` | Get user's posts |
-| `linkedin search <query>` | Search people/companies |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--json` | Output JSON with url, title, and content | - |
+| `--html` | Output pruned HTML instead of markdown | - |
+| `--wait <ms>` | Wait time after page load | 2000 |
+| `--scroll <n>` | Number of scroll iterations | 0 |
 
-### Browser
+## Examples
 
-| Command | Description |
-|---------|-------------|
-| `browser navigate <url>` | Go to URL |
-| `browser screenshot` | Screenshot page |
-| `browser info` | Get current URL/title |
-| `browser list` | List controlled tabs |
-| `browser switch <index>` | Switch active tab |
+### News Articles
 
-### Page
-
-| Command | Description |
-|---------|-------------|
-| `page scrape` | Extract text/links/images |
-| `page script <code>` | Run custom JavaScript |
-
-## Command Reference
-
-### Twitter Tools
-
-#### `scrape_twitter_profile`
-Get user profile information including bio, follower counts, and verification status.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `username` | string | Yes | Twitter username (without @) |
-
-**Example:**
-```json
-{ "username": "elonmusk" }
+```bash
+browse https://techcrunch.com/2024/01/15/some-article
 ```
 
-**Returns:** Profile object with `username`, `displayName`, `bio`, `followersCount`, `followingCount`, `verified`, etc.
+### Social Media (requires login in browser)
 
-#### `scrape_twitter_timeline`
-Get tweets from a user's timeline or home feed with pagination.
+```bash
+# Twitter/X
+browse https://x.com/elonmusk
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `username` | string | No | Username to scrape (omit for home timeline) |
-| `count` | number | No | Number of tweets (default: 20, max: 100) |
-
-#### `scrape_twitter_post`
-Get a single tweet with thread context and replies.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `url` | string | Yes | Full tweet URL (e.g., https://x.com/user/status/123) |
-
-#### `scrape_twitter_search`
-Search Twitter for tweets matching a query.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `query` | string | Yes | Search query (supports Twitter operators) |
-| `count` | number | No | Number of results (default: 20, max: 100) |
-
-#### `scrape_twitter_list`
-Get Twitter list information and tweets from list members.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `listId` | string | Yes | Twitter list ID (numeric) |
-| `count` | number | No | Number of tweets (default: 20, max: 100) |
-
-**Example:**
-```json
-{ "listId": "1234567890" }
+# LinkedIn
+browse https://linkedin.com/in/satyanadella
 ```
 
-**Returns:** List object with metadata (`name`, `description`, `owner`, `memberCount`, `followerCount`, `isPrivate`, etc.) and array of tweets from list members.
+### Infinite Scroll Pages
 
-### LinkedIn Tools
+```bash
+# Scroll 5 times to load more content
+browse https://news.ycombinator.com --scroll 5
+```
 
-#### `scrape_linkedin_profile`
-Get profile information including experience, education, and skills.
+### Get Structured Output
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `url` | string | Yes | Full LinkedIn profile URL |
+```bash
+# JSON with metadata
+browse https://example.com --json | jq .
 
-#### `scrape_linkedin_posts`
-Get posts from a LinkedIn user's activity feed.
+# Output:
+# {
+#   "url": "https://example.com",
+#   "title": "Example Domain",
+#   "content": "# Example Domain\n\nThis domain is for..."
+# }
+```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `url` | string | Yes | LinkedIn profile URL |
-| `count` | number | No | Number of posts (default: 10, max: 50) |
+## Claude Code Integration
 
-#### `scrape_linkedin_search`
-Search LinkedIn for people, companies, or posts.
+This package includes a Claude Code skill for natural language web scraping:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `query` | string | Yes | Search query |
-| `type` | string | No | "people", "companies", or "posts" (default: "people") |
-| `count` | number | No | Number of results (default: 10, max: 50) |
+```
+You: Get the content from https://news.ycombinator.com
+Claude: [runs: browse https://news.ycombinator.com]
 
-### Browser Tools
+You: Scrape this Twitter profile and scroll to get more tweets
+Claude: [runs: browse https://x.com/openai --scroll 3]
+```
 
-#### `navigate`
-Navigate the active tab to a URL.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `url` | string | Yes | URL to navigate to |
-
-#### `take_screenshot`
-Capture a screenshot of the current page.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `fullPage` | boolean | No | Capture full page (default: false) |
-
-#### `scrape_page`
-Extract text content, links, and images from the current page.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `selector` | string | No | CSS selector to scope extraction |
-
-#### `execute_script`
-Run custom JavaScript on the page.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `script` | string | Yes | JavaScript code to execute |
+The skill is automatically available when installed globally via npm.
 
 ## Troubleshooting
 
+### "Connection refused" or "Daemon not running"
+
+Start the daemon:
+```bash
+browse init
+```
+
 ### "Extension not connected"
-1. Make sure Chrome has the Playwriter extension installed
-2. Click the extension icon on a tab (icon turns green)
-3. The extension relay server should be running
 
-### "No pages available"
-Click the Playwriter extension icon on a Chrome tab to enable control.
+1. Make sure the Browse extension is installed in Chrome
+2. Check that the extension icon shows "Connected" when clicked
+3. Refresh the page you want to scrape
 
-### "Rate limit detected"
-Wait a few minutes before making more requests. The scraper includes automatic delays, but rapid consecutive requests may trigger platform rate limits.
+### "No content returned"
+
+Some pages load content dynamically. Try:
+```bash
+browse <url> --wait 5000  # Wait longer
+browse <url> --scroll 2   # Scroll to trigger lazy loading
+```
 
 ### "Login required"
-Log into the website (Twitter, LinkedIn, etc.) in your browser first. The scraper uses your existing session.
 
-### "Profile not found"
-Check that the username or URL is correct. The account may have been deleted or suspended.
+Log into the website in your Chrome browser first. The CLI uses your existing browser session.
 
-### Debug Mode
-Enable verbose logging with:
+### Extension not finding the daemon
+
+Make sure port 9222 is available:
 ```bash
-DEBUG=session-scraper:* npx @pep/session-scraper-mcp
+lsof -i :9222  # Check if something else is using the port
+browse stop    # Stop any existing daemon
+browse init    # Start fresh
 ```
 
-## Example Usage
+## How It Differs from Other Scrapers
 
-```
-You: Scrape Elon Musk's Twitter profile
-
-Claude: [Uses scrape_twitter_profile with username "elonmusk"]
-
-Result:
-{
-  "username": "elonmusk",
-  "displayName": "Elon Musk",
-  "bio": "Mars & Cars, Chips & Dips",
-  "followersCount": 170500000,
-  "followingCount": 512,
-  ...
-}
-```
-
-## Requirements
-
-- Chrome browser
-- [Playwriter extension](https://chromewebstore.google.com/detail/playwriter-mcp/jfeammnjpkecdekppnclgkkffahnhfhe)
-- Logged into the sites you want to scrape
-
-## Specs
-
-See `/specs` for detailed specifications:
-
-- [Overview & Architecture](specs/01-overview.md)
-- [CLI Interface](specs/02-cli-interface.md)
-- [Skill Definition](specs/03-skill-definition.md)
-- [Scrapers (Twitter, LinkedIn, Generic)](specs/04-scrapers.md)
-- [Browser Connection](specs/05-browser-connection.md)
-- [Publishing](specs/06-publishing.md)
+| Feature | browse | Puppeteer/Playwright | curl/wget |
+|---------|--------|---------------------|-----------|
+| Uses your logins | Yes | No | No |
+| Bypasses bot detection | Yes | Sometimes | No |
+| JavaScript rendering | Yes | Yes | No |
+| Rate limits | Your account's | Often blocked | Often blocked |
+| Setup complexity | Low | Medium | Low |
 
 ## Development
 
 ```bash
+# Install dependencies
 bun install
+
+# Run in development mode
 bun run dev
+
+# Type check
+bun run typecheck
+
+# Run tests
+bun test
+
+# Build for distribution
+bun run build
+
+# Lint
+bun run lint
 ```
+
+## Architecture
+
+- **`src/cli.ts`** - Commander.js CLI interface
+- **`src/daemon.ts`** - WebSocket relay server
+- **`src/scrape.ts`** - Core scraping logic
+- **`src/utils/html-parser.ts`** - Turndown-based HTML to markdown conversion
+- **`extension/`** - Chrome extension (Manifest V3)
+
+## Requirements
+
+- Node.js >= 18.0.0
+- Chrome browser
+- Browse extension installed
 
 ## License
 

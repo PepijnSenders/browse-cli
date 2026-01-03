@@ -46,72 +46,6 @@ export interface StructuredError {
 }
 
 /**
- * Check Twitter page for common error states.
- *
- * @param content - Page HTML content
- * @returns Error type if detected, null otherwise
- */
-export function checkTwitterErrors(content: string): ErrorType | null {
-  if (!content || typeof content !== 'string') {
-    return null;
-  }
-
-  const lower = content.toLowerCase();
-
-  if (lower.includes("this account doesn't exist") || lower.includes("account doesn't exist")) {
-    return 'not_found';
-  }
-
-  if (lower.includes('account suspended') || lower.includes('suspended account')) {
-    return 'suspended';
-  }
-
-  if (lower.includes('rate limit exceeded') || lower.includes('rate limit')) {
-    return 'rate_limited';
-  }
-
-  // Check for login requirement (but not if we see "log out" which means we're logged in)
-  if (lower.includes('log in') && !lower.includes('log out')) {
-    return 'login_required';
-  }
-
-  return null;
-}
-
-/**
- * Check LinkedIn page for common error states.
- *
- * @param content - Page HTML content
- * @returns Error type if detected, null otherwise
- */
-export function checkLinkedInErrors(content: string): ErrorType | null {
-  if (!content || typeof content !== 'string') {
-    return null;
-  }
-
-  const lower = content.toLowerCase();
-
-  if (lower.includes('page not found') || lower.includes('404')) {
-    return 'not_found';
-  }
-
-  if (lower.includes('account suspended')) {
-    return 'suspended';
-  }
-
-  if (lower.includes('unusual activity') || lower.includes('restricted')) {
-    return 'rate_limited';
-  }
-
-  // Check for login requirement (but not if we see "sign out")
-  if (lower.includes('sign in') && !lower.includes('sign out')) {
-    return 'login_required';
-  }
-
-  return null;
-}
-
-/**
  * Map error type to exit code.
  *
  * @param errorType - The error type
@@ -177,7 +111,7 @@ export function getErrorHint(errorType: ErrorType): string {
       return 'You must be logged in to access this content. Open the page in your browser and log in first.';
 
     case 'connection_error':
-      return 'Make sure Chrome has the Playwriter extension installed and enabled.';
+      return 'Make sure Chrome has the Browse extension installed and the daemon is running (browse init).';
 
     case 'navigation_timeout':
       return 'Page took too long to load. Try increasing the timeout or check your connection.';
