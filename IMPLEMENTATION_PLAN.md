@@ -166,7 +166,7 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
 **Spec Reference:** [specs/04-linkedin-scraper.md](specs/04-linkedin-scraper.md)
 
 ### 5.1 Profile Scraping
-- [ ] `scrape_linkedin_profile` - Get profile info
+- [x] `scrape_linkedin_profile` - Get profile info
   - Input: `{ url: string }`
   - Output: Profile object (see specs/04-linkedin-scraper.md)
   - Handle lazy-loaded sections
@@ -176,7 +176,7 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
 **Verify:** `scrape_linkedin_profile` returns object with `name`, `headline`, `experience` array
 
 ### 5.2 Posts Scraping
-- [ ] `scrape_linkedin_posts` - Get user's posts
+- [x] `scrape_linkedin_posts` - Get user's posts
   - Input: `{ url: string, count?: number }`
   - Output: `{ posts: [...] }`
   - Navigate to `/recent-activity/all/`
@@ -185,7 +185,7 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
 **Verify:** `scrape_linkedin_posts` returns posts array with `text`, `metrics` for each
 
 ### 5.3 Search
-- [ ] `scrape_linkedin_search` - Search people/companies/posts
+- [x] `scrape_linkedin_search` - Search people/companies/posts
   - Input: `{ query: string, type?: 'people'|'companies'|'posts', count?: number }`
   - Output: Search results
   - Handle pagination
@@ -307,7 +307,7 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
 | 2. Browser Tools | Complete |
 | 3. Generic Scraping | Complete |
 | 4. Twitter Scraper | Complete |
-| 5. LinkedIn Scraper | Not Started |
+| 5. LinkedIn Scraper | Complete |
 | 6. Error Handling | Not Started |
 | 7. Testing | Not Started |
 | 8. Documentation | Not Started |

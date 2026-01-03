@@ -19,6 +19,11 @@ import {
   scrapeTwitterPost,
   scrapeTwitterSearch,
 } from '../scrapers/twitter.js';
+import {
+  scrapeLinkedInProfile,
+  scrapeLinkedInPosts,
+  scrapeLinkedInSearch,
+} from '../scrapers/linkedin.js';
 
 /**
  * Tool Input Schemas
@@ -505,37 +510,46 @@ async function handleScrapeTwitterSearch(args: z.infer<typeof scrapeTwitterSearc
 }
 
 /**
- * Tool Handlers - LinkedIn Tools (Phase 5) - Stubs
+ * Tool Handlers - LinkedIn Tools (Phase 5)
  */
 
 async function handleScrapeLinkedInProfile(args: z.infer<typeof scrapeLinkedInProfileSchema>) {
+  const page = await getPage();
+  const profile = await scrapeLinkedInProfile(page, args.url);
+
   return {
     content: [
       {
         type: 'text',
-        text: `Not implemented yet: scrape LinkedIn profile ${args.url}`,
+        text: JSON.stringify(profile, null, 2),
       },
     ],
   };
 }
 
 async function handleScrapeLinkedInPosts(args: z.infer<typeof scrapeLinkedInPostsSchema>) {
+  const page = await getPage();
+  const posts = await scrapeLinkedInPosts(page, args.url, args.count);
+
   return {
     content: [
       {
         type: 'text',
-        text: `Not implemented yet: scrape LinkedIn posts from ${args.url} (count: ${args.count ?? 10})`,
+        text: JSON.stringify({ posts, count: posts.length }, null, 2),
       },
     ],
   };
 }
 
 async function handleScrapeLinkedInSearch(args: z.infer<typeof scrapeLinkedInSearchSchema>) {
+  const page = await getPage();
+  const results = await scrapeLinkedInSearch(page, args.query, args.type, args.count);
+
   return {
     content: [
       {
         type: 'text',
-        text: `Not implemented yet: search LinkedIn for "${args.query}" (type: ${args.type ?? 'people'}, count: ${args.count ?? 10})`,
+        text: JSON.stringify(results, null, 2),
       },
     ],
   };

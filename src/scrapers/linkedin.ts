@@ -88,80 +88,512 @@ export interface LinkedInSearchResults {
 }
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+const LINKEDIN_BASE_URL = 'https://www.linkedin.com';
+const DEFAULT_TIMEOUT = 30000;
+const SCROLL_DELAY = 2000; // LinkedIn requires slower interaction
+const MAX_SCROLL_ATTEMPTS = 10;
+
+// ============================================================================
+// Selectors (from spec)
+// ============================================================================
+
+const PROFILE_SELECTORS = {
+  profileCard: '.pv-top-card',
+  name: '.pv-top-card h1',
+  headline: '.pv-top-card .text-body-medium',
+  location: '.pv-top-card .pb2 .text-body-small',
+  profileImage: '.pv-top-card img.pv-top-card-profile-picture__image',
+  aboutSection: '#about',
+  aboutText: '#about + .display-flex .inline-show-more-text',
+  connectionCount: '.pv-top-card .pv-top-card--list-bullet li:first-child span',
+  experienceSection: '#experience',
+  experienceItem: '#experience ~ .pvs-list__outer-container li.artdeco-list__item',
+  educationSection: '#education',
+  educationItem: '#education ~ .pvs-list__outer-container li.artdeco-list__item',
+  skillsSection: '#skills',
+  skillItem: '#skills ~ .pvs-list__outer-container .hoverable-link-text span[aria-hidden="true"]',
+};
+
+const POST_SELECTORS = {
+  postContainer: '.feed-shared-update-v2',
+  authorName: '.update-components-actor__name span[aria-hidden="true"]',
+  authorHeadline: '.update-components-actor__description',
+  authorImage: '.update-components-actor__image img',
+  postText: '.feed-shared-update-v2__description .break-words',
+  postImage: '.feed-shared-image__image',
+  reactionCount: '.social-details-social-counts__reactions-count',
+  commentCount: '.social-details-social-counts__comments',
+  repostCount: '.social-details-social-counts__reposts',
+  postTime: '.update-components-actor__sub-description span[aria-hidden="true"]',
+};
+
+const SEARCH_SELECTORS = {
+  personResult: '.reusable-search__result-container',
+  personName: '.entity-result__title-text a span[aria-hidden="true"]',
+  personHeadline: '.entity-result__primary-subtitle',
+  personLocation: '.entity-result__secondary-subtitle',
+  personProfileLink: '.entity-result__title-text a',
+  connectionDegree: '.entity-result__badge-text',
+  companyName: '.entity-result__title-text a span[aria-hidden="true"]',
+  companyIndustry: '.entity-result__primary-subtitle',
+  companyFollowers: '.entity-result__secondary-subtitle',
+  nextButton: 'button[aria-label="Next"]',
+};
+
+// ============================================================================
+// Internal Utilities
+// ============================================================================
+
+async function waitAndScroll(page: Page): Promise<boolean> {
+  const previousHeight = await page.evaluate(() => document.body.scrollHeight);
+
+  await page.evaluate(() => {
+    window.scrollBy({ top: 500, behavior: 'smooth' });
+  });
+  await page.waitForTimeout(SCROLL_DELAY);
+
+  const newHeight = await page.evaluate(() => document.body.scrollHeight);
+  return newHeight > previousHeight;
+}
+
+// ============================================================================
 // Scraper Functions
 // ============================================================================
 
 /**
  * Scrape a LinkedIn profile by URL
- *
- * @param page - Playwright page instance
- * @param url - Full LinkedIn profile URL (e.g., https://www.linkedin.com/in/username/)
- * @returns Profile object with user information
- *
- * @example
- * const profile = await scrapeLinkedInProfile(page, 'https://www.linkedin.com/in/satyanadella/');
- * console.log(profile.name); // "Satya Nadella"
- * console.log(profile.headline); // "Chairman and CEO at Microsoft"
- * console.log(profile.experience.length); // Number of experiences
  */
 export async function scrapeLinkedInProfile(
-  _page: Page,
-  _url: string
+  page: Page,
+  url: string
 ): Promise<LinkedInProfile> {
-  throw new Error('LinkedIn scraper not implemented yet');
+  // Validate URL
+  if (!url.includes('linkedin.com/in/')) {
+    throw new Error('Invalid LinkedIn profile URL. Expected format: https://www.linkedin.com/in/username/');
+  }
+
+  // Navigate to profile
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: DEFAULT_TIMEOUT });
+
+  // Wait for profile card to load
+  try {
+    await page.waitForSelector(PROFILE_SELECTORS.profileCard, { timeout: DEFAULT_TIMEOUT });
+  } catch {
+    // Check for error states
+    const pageContent = await page.content();
+    if (pageContent.includes('Page not found') || pageContent.includes('profile is not available')) {
+      throw new Error('Profile not found');
+    }
+    if (pageContent.includes('Sign in') || pageContent.includes('Join now')) {
+      throw new Error('Not logged in. Please log into LinkedIn in your browser.');
+    }
+    throw new Error('Failed to load profile');
+  }
+
+  await humanDelay();
+
+  // Scroll to load lazy sections
+  for (let i = 0; i < 3; i++) {
+    await smoothScroll(page, 500);
+    await humanDelay();
+  }
+
+  // Extract profile data
+  const profile = await page.evaluate((selectors) => {
+    const getText = (selector: string): string | null => {
+      const el = document.querySelector(selector);
+      return el?.textContent?.trim() || null;
+    };
+
+    const getAttr = (selector: string, attr: string): string | null => {
+      const el = document.querySelector(selector);
+      return el?.getAttribute(attr) || null;
+    };
+
+    // Basic info
+    const name = getText(selectors.name) || 'Unknown';
+    const headline = getText(selectors.headline) || '';
+    const location = getText(selectors.location);
+    const profileImageUrl = getAttr(selectors.profileImage, 'src');
+
+    // About section
+    const aboutText = getText(selectors.aboutText);
+
+    // Connection count
+    const connectionText = getText(selectors.connectionCount);
+    const connectionCount = connectionText?.match(/(\d+\+?|[\d,]+)/)?.[0] || '0';
+
+    // Experience section
+    const experience: LinkedInExperience[] = [];
+    const expItems = document.querySelectorAll(selectors.experienceItem);
+    expItems.forEach((item) => {
+      const titleEl = item.querySelector('.mr1 .visually-hidden');
+      const companyEl = item.querySelector('.t-14.t-normal span[aria-hidden="true"]');
+      const durationEl = item.querySelector('.pvs-entity__caption-wrapper');
+      const descEl = item.querySelector('.inline-show-more-text');
+      const companyLink = item.querySelector('a[href*="/company/"]');
+
+      if (titleEl || companyEl) {
+        experience.push({
+          title: titleEl?.textContent?.trim() || '',
+          company: companyEl?.textContent?.trim() || '',
+          companyUrl: companyLink?.getAttribute('href') || null,
+          duration: durationEl?.textContent?.trim() || '',
+          location: null,
+          description: descEl?.textContent?.trim() || null,
+        });
+      }
+    });
+
+    // Education section
+    const education: LinkedInEducation[] = [];
+    const eduItems = document.querySelectorAll(selectors.educationItem);
+    eduItems.forEach((item) => {
+      const schoolEl = item.querySelector('.mr1 .visually-hidden');
+      const degreeEl = item.querySelector('.t-14.t-normal span[aria-hidden="true"]');
+      const yearsEl = item.querySelector('.pvs-entity__caption-wrapper');
+
+      if (schoolEl) {
+        education.push({
+          school: schoolEl.textContent?.trim() || '',
+          degree: degreeEl?.textContent?.trim() || null,
+          years: yearsEl?.textContent?.trim() || null,
+        });
+      }
+    });
+
+    // Skills (first 10)
+    const skills: string[] = [];
+    const skillItems = document.querySelectorAll(selectors.skillItem);
+    skillItems.forEach((item, index) => {
+      if (index < 10 && item.textContent) {
+        skills.push(item.textContent.trim());
+      }
+    });
+
+    return {
+      name,
+      headline,
+      location,
+      about: aboutText,
+      profileImageUrl,
+      connectionCount,
+      experience: experience.slice(0, 10),
+      education: education.slice(0, 5),
+      skills,
+    };
+  }, PROFILE_SELECTORS);
+
+  return profile;
 }
 
 /**
  * Scrape posts from a LinkedIn profile
- *
- * @param page - Playwright page instance
- * @param url - Full LinkedIn profile URL
- * @param count - Maximum number of posts to retrieve (default: 10)
- * @returns Array of posts
- *
- * @example
- * const posts = await scrapeLinkedInPosts(
- *   page,
- *   'https://www.linkedin.com/in/satyanadella/',
- *   5
- * );
- * console.log(posts[0].text);
- * console.log(posts[0].metrics.reactions);
  */
 export async function scrapeLinkedInPosts(
-  _page: Page,
-  _url: string,
-  _count: number = 10
+  page: Page,
+  url: string,
+  count: number = 10
 ): Promise<LinkedInPost[]> {
-  throw new Error('LinkedIn scraper not implemented yet');
+  const maxCount = Math.min(count, 50);
+
+  // Construct activity URL
+  let activityUrl = url;
+  if (url.includes('/in/')) {
+    activityUrl = url.endsWith('/') ? `${url}recent-activity/all/` : `${url}/recent-activity/all/`;
+  }
+
+  await page.goto(activityUrl, { waitUntil: 'domcontentloaded', timeout: DEFAULT_TIMEOUT });
+
+  // Wait for posts to load
+  try {
+    await page.waitForSelector(POST_SELECTORS.postContainer, { timeout: DEFAULT_TIMEOUT });
+  } catch {
+    // No posts found
+    return [];
+  }
+
+  await humanDelay();
+
+  const posts: LinkedInPost[] = [];
+  const seenIds = new Set<string>();
+  let scrollAttempts = 0;
+
+  while (posts.length < maxCount && scrollAttempts < MAX_SCROLL_ATTEMPTS) {
+    // Extract posts from current view
+    const newPosts = await page.evaluate((selectors) => {
+      const parseMetricText = (text: string | null): number => {
+        if (!text) return 0;
+        const match = text.match(/([\d,.]+)([KM]?)/);
+        if (!match) return 0;
+        let num = parseFloat(match[1].replace(/,/g, ''));
+        if (match[2] === 'K') num *= 1000;
+        if (match[2] === 'M') num *= 1000000;
+        return Math.round(num);
+      };
+
+      const containers = document.querySelectorAll(selectors.postContainer);
+      const results: LinkedInPost[] = [];
+
+      containers.forEach((container, index) => {
+        try {
+          // Generate a pseudo-ID from position
+          const id = `post-${index}-${Date.now()}`;
+
+          // Author info
+          const authorNameEl = container.querySelector(selectors.authorName);
+          const authorHeadlineEl = container.querySelector(selectors.authorHeadline);
+          const authorImageEl = container.querySelector(selectors.authorImage);
+          const authorLinkEl = container.querySelector('.update-components-actor__container-link');
+
+          // Post text
+          const textEl = container.querySelector(selectors.postText);
+          const text = textEl?.textContent?.trim() || '';
+
+          // Time
+          const timeEl = container.querySelector(selectors.postTime);
+          const createdAt = timeEl?.textContent?.trim() || '';
+
+          // Metrics
+          const reactionEl = container.querySelector(selectors.reactionCount);
+          const commentEl = container.querySelector(selectors.commentCount);
+          const repostEl = container.querySelector(selectors.repostCount);
+
+          // Media
+          const media: LinkedInMedia[] = [];
+          const images = container.querySelectorAll(selectors.postImage);
+          images.forEach((img) => {
+            const src = img.getAttribute('src');
+            if (src) media.push({ type: 'image', url: src });
+          });
+
+          if (text || media.length > 0) {
+            results.push({
+              id,
+              author: {
+                name: authorNameEl?.textContent?.trim() || '',
+                headline: authorHeadlineEl?.textContent?.trim() || '',
+                profileUrl: authorLinkEl?.getAttribute('href') || null,
+                profileImageUrl: authorImageEl?.getAttribute('src') || null,
+              },
+              text,
+              createdAt,
+              metrics: {
+                reactions: parseMetricText(reactionEl?.textContent ?? null),
+                comments: parseMetricText(commentEl?.textContent ?? null),
+                reposts: parseMetricText(repostEl?.textContent ?? null),
+              },
+              media,
+            });
+          }
+        } catch {
+          // Skip malformed posts
+        }
+      });
+
+      return results;
+    }, POST_SELECTORS);
+
+    // Add new posts (avoiding duplicates based on text)
+    for (const post of newPosts) {
+      const postKey = post.text.slice(0, 100);
+      if (!seenIds.has(postKey) && posts.length < maxCount) {
+        seenIds.add(postKey);
+        posts.push(post);
+      }
+    }
+
+    if (posts.length >= maxCount) break;
+
+    // Try to load more
+    const hasMore = await waitAndScroll(page);
+    if (!hasMore) {
+      scrollAttempts++;
+    } else {
+      scrollAttempts = 0;
+    }
+
+    await humanDelay();
+  }
+
+  return posts.slice(0, maxCount);
 }
 
 /**
  * Search LinkedIn for people, companies, or posts
- *
- * @param page - Playwright page instance
- * @param query - Search query
- * @param type - Search type: 'people', 'companies', or 'posts' (default: 'people')
- * @param count - Maximum number of results to retrieve (default: 20)
- * @returns Search results
- *
- * @example
- * // Search for people
- * const people = await scrapeLinkedInSearch(page, 'software engineer', 'people', 10);
- *
- * // Search for companies
- * const companies = await scrapeLinkedInSearch(page, 'AI startup', 'companies', 5);
- *
- * // Search for posts
- * const posts = await scrapeLinkedInSearch(page, 'machine learning', 'posts', 15);
  */
 export async function scrapeLinkedInSearch(
-  _page: Page,
-  _query: string,
-  _type: 'people' | 'companies' | 'posts' = 'people',
-  _count: number = 20
+  page: Page,
+  query: string,
+  type: 'people' | 'companies' | 'posts' = 'people',
+  count: number = 20
 ): Promise<LinkedInSearchResults> {
-  throw new Error('LinkedIn scraper not implemented yet');
+  const maxCount = Math.min(count, 50);
+
+  // Construct search URL based on type
+  const searchPaths: Record<string, string> = {
+    people: 'people',
+    companies: 'companies',
+    posts: 'content',
+  };
+  const searchPath = searchPaths[type];
+  const searchUrl = `${LINKEDIN_BASE_URL}/search/results/${searchPath}/?keywords=${encodeURIComponent(query)}`;
+
+  await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: DEFAULT_TIMEOUT });
+
+  // Wait for results
+  try {
+    await page.waitForSelector(SEARCH_SELECTORS.personResult, { timeout: DEFAULT_TIMEOUT });
+  } catch {
+    // No results
+    return { results: [], totalResults: 0, hasMore: false };
+  }
+
+  await humanDelay();
+
+  const results: (LinkedInPersonResult | LinkedInCompanyResult)[] = [];
+  const seenUrls = new Set<string>();
+  let scrollAttempts = 0;
+
+  while (results.length < maxCount && scrollAttempts < MAX_SCROLL_ATTEMPTS) {
+    // Extract results based on type
+    if (type === 'people') {
+      const newResults = await page.evaluate((selectors) => {
+        const containers = document.querySelectorAll(selectors.personResult);
+        const items: LinkedInPersonResult[] = [];
+
+        containers.forEach((container) => {
+          try {
+            const nameEl = container.querySelector(selectors.personName);
+            const headlineEl = container.querySelector(selectors.personHeadline);
+            const locationEl = container.querySelector(selectors.personLocation);
+            const linkEl = container.querySelector(selectors.personProfileLink);
+            const degreeEl = container.querySelector(selectors.connectionDegree);
+
+            const profileUrl = linkEl?.getAttribute('href')?.split('?')[0] || '';
+            if (!profileUrl || !nameEl) return;
+
+            items.push({
+              name: nameEl.textContent?.trim() || '',
+              headline: headlineEl?.textContent?.trim() || '',
+              location: locationEl?.textContent?.trim() || null,
+              profileUrl: `https://www.linkedin.com${profileUrl.startsWith('/') ? profileUrl : '/' + profileUrl}`,
+              connectionDegree: degreeEl?.textContent?.trim() || 'Unknown',
+            });
+          } catch {
+            // Skip malformed results
+          }
+        });
+
+        return items;
+      }, SEARCH_SELECTORS);
+
+      for (const result of newResults) {
+        if (!seenUrls.has(result.profileUrl) && results.length < maxCount) {
+          seenUrls.add(result.profileUrl);
+          results.push(result);
+        }
+      }
+    } else if (type === 'companies') {
+      const newResults = await page.evaluate((selectors) => {
+        const containers = document.querySelectorAll(selectors.personResult);
+        const items: LinkedInCompanyResult[] = [];
+
+        containers.forEach((container) => {
+          try {
+            const nameEl = container.querySelector(selectors.companyName);
+            const industryEl = container.querySelector(selectors.companyIndustry);
+            const followersEl = container.querySelector(selectors.companyFollowers);
+            const linkEl = container.querySelector('.entity-result__title-text a');
+
+            const companyUrl = linkEl?.getAttribute('href')?.split('?')[0] || '';
+            if (!companyUrl || !nameEl) return;
+
+            items.push({
+              name: nameEl.textContent?.trim() || '',
+              industry: industryEl?.textContent?.trim() || null,
+              followers: followersEl?.textContent?.trim() || null,
+              companyUrl: `https://www.linkedin.com${companyUrl.startsWith('/') ? companyUrl : '/' + companyUrl}`,
+            });
+          } catch {
+            // Skip malformed results
+          }
+        });
+
+        return items;
+      }, SEARCH_SELECTORS);
+
+      for (const result of newResults) {
+        if (!seenUrls.has(result.companyUrl) && results.length < maxCount) {
+          seenUrls.add(result.companyUrl);
+          results.push(result);
+        }
+      }
+    } else {
+      // Posts search - returns similar structure to posts scraping
+      const newPosts = await page.evaluate(() => {
+        const containers = document.querySelectorAll('.reusable-search__result-container');
+        const items: LinkedInPersonResult[] = [];
+
+        containers.forEach((container, index) => {
+          try {
+            const textEl = container.querySelector('.update-components-text');
+            const authorEl = container.querySelector('.update-components-actor__name');
+            const linkEl = container.querySelector('a[href*="/feed/update/"]');
+
+            const postUrl = linkEl?.getAttribute('href') || `post-${index}`;
+
+            items.push({
+              name: authorEl?.textContent?.trim() || 'Unknown',
+              headline: textEl?.textContent?.trim()?.slice(0, 200) || '',
+              location: null,
+              profileUrl: postUrl,
+              connectionDegree: '',
+            });
+          } catch {
+            // Skip
+          }
+        });
+
+        return items;
+      });
+
+      for (const result of newPosts) {
+        if (!seenUrls.has(result.profileUrl) && results.length < maxCount) {
+          seenUrls.add(result.profileUrl);
+          results.push(result);
+        }
+      }
+    }
+
+    if (results.length >= maxCount) break;
+
+    // Try pagination or scroll
+    const nextButton = await page.$(SEARCH_SELECTORS.nextButton);
+    if (nextButton) {
+      await nextButton.click();
+      await page.waitForTimeout(SCROLL_DELAY);
+      await humanDelay();
+    } else {
+      const hasMore = await waitAndScroll(page);
+      if (!hasMore) {
+        scrollAttempts++;
+      } else {
+        scrollAttempts = 0;
+      }
+    }
+
+    await humanDelay();
+  }
+
+  return {
+    results: results.slice(0, maxCount) as LinkedInPersonResult[] | LinkedInCompanyResult[],
+    totalResults: results.length,
+    hasMore: scrollAttempts < MAX_SCROLL_ATTEMPTS,
+  };
 }
 
 // ============================================================================
