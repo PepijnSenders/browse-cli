@@ -307,6 +307,7 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 | 10. MCP Server | ✓ Completed |
 | 11. Documentation Polish | ✓ Completed |
 | 12. Feature Enhancements | ✓ Completed |
+| 13. Code Quality Improvements | ✓ Completed |
 
 ---
 
@@ -332,6 +333,42 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 - [x] Verify typecheck and tests pass (143 tests)
 
 **Verify**: scrape_page MCP tool now supports optional selector parameter ✓
+
+---
+
+## Phase 13: Code Quality Improvements
+
+### 13.1 Critical Bug Fixes
+- [x] Fix scroll pagination bug in Twitter scraper (previousHeight not updated in loop)
+- [x] Fix scroll pagination bug in LinkedIn scraper (previousHeight not updated in loop)
+- [x] Add proper validation to page script execution (prevent crashes from large results)
+- [x] Improve LinkedIn post ID generation with stable hashing for proper deduplication
+
+**Impact**: Scroll pagination now works reliably across multiple iterations, preventing missed content.
+
+### 13.2 Enhanced Error Detection
+- [x] Add detection for private/protected Twitter accounts
+- [x] Add detection for blocked users on Twitter
+- [x] Add detection for deleted/unavailable posts
+- [x] Add new exit codes for private_account (9) and blocked (10)
+- [x] Add user-friendly error messages for new error types
+
+**Impact**: Better error handling and more informative feedback for various Twitter edge cases.
+
+### 13.3 Type Safety Improvements
+- [x] Replace `any` type in Twitter timeline response with proper type definition
+- [x] Add new error types to PlatformErrorType union
+- [x] Update ErrorType union in utils/errors.ts
+- [x] Verify all types with `bun run typecheck`
+
+**Impact**: Improved type safety and better IDE autocomplete support.
+
+### 13.4 Verification
+- [x] All typechecks pass with `bun run typecheck`
+- [x] All 143 tests pass with `bun test`
+- [x] No regressions in existing functionality
+
+**Verify**: All code quality improvements complete and verified ✓
 
 ---
 

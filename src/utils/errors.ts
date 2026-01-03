@@ -14,7 +14,9 @@ export enum ExitCode {
   ELEMENT_NOT_FOUND = 5,
   RATE_LIMITED = 6,
   LOGIN_REQUIRED = 7,
-  NOT_FOUND = 8
+  NOT_FOUND = 8,
+  PRIVATE_ACCOUNT = 9,
+  BLOCKED = 10
 }
 
 /**
@@ -29,7 +31,9 @@ export type ErrorType =
   | 'connection_error'
   | 'navigation_timeout'
   | 'element_not_found'
-  | 'no_pages';
+  | 'no_pages'
+  | 'private_account'
+  | 'blocked';
 
 /**
  * Structured error object for JSON output.
@@ -138,6 +142,12 @@ export function getExitCode(errorType: ErrorType): ExitCode {
     case 'no_pages':
       return ExitCode.NO_PAGES;
 
+    case 'private_account':
+      return ExitCode.PRIVATE_ACCOUNT;
+
+    case 'blocked':
+      return ExitCode.BLOCKED;
+
     default:
       return ExitCode.GENERAL_ERROR;
   }
@@ -177,6 +187,12 @@ export function getErrorHint(errorType: ErrorType): string {
 
     case 'no_pages':
       return 'No browser pages are available. Open a new tab in Chrome first.';
+
+    case 'private_account':
+      return 'This account is private or protected. You may need to follow them first to see their content.';
+
+    case 'blocked':
+      return 'You are blocked by this user and cannot access their content.';
 
     default:
       return 'An unexpected error occurred.';

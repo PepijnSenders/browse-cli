@@ -146,7 +146,11 @@ export async function getTimeline(
     const result = await collectTimelineTweets(page, options.count);
 
     // Build the response object
-    const response: any = {
+    const response: {
+      tweets: typeof result.tweets;
+      hasMore: boolean;
+      username?: string;
+    } = {
       tweets: result.tweets,
       hasMore: result.hasMore
     };

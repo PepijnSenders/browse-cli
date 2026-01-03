@@ -183,7 +183,7 @@ export async function humanDelay(min = 500, max = 1500): Promise<void> {
  */
 export async function scrollForMore(page: Page, maxAttempts = 3): Promise<boolean> {
   let attempts = 0;
-  const previousHeight = await page.evaluate(() => document.body.scrollHeight);
+  let previousHeight = await page.evaluate(() => document.body.scrollHeight);
 
   while (attempts < maxAttempts) {
     // Scroll to bottom
@@ -195,6 +195,8 @@ export async function scrollForMore(page: Page, maxAttempts = 3): Promise<boolea
     // Check if height changed
     const newHeight = await page.evaluate(() => document.body.scrollHeight);
     if (newHeight > previousHeight) {
+      previousHeight = newHeight; // Update for next iteration
+      attempts = 0; // Reset attempts counter on success
       return true;
     }
 
@@ -409,6 +411,17 @@ export async function extractPosts(page: Page, count = 20): Promise<LinkedInPost
   let attempts = 0;
   const maxAttempts = 10;
 
+  // Simple hash function for generating stable IDs
+  const simpleHash = (str: string): string => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
+  };
+
   // Wait for posts to load
   try {
     await waitForElement(page, SELECTORS.posts.container, 10000);
@@ -436,8 +449,20 @@ export async function extractPosts(page: Page, count = 20): Promise<LinkedInPost
 
       for (const container of containers) {
         try {
-          // Generate ID from container
-          const id = container.id || `post-${posts.length}`;
+          // Generate stable ID from container attributes or content hash
+          let id = container.id;
+          if (!id) {
+            // Try to extract URN from data attributes or links
+            const urnMatch = container.innerHTML.match(/urn:li:activity:(\d+)/);
+            if (urnMatch) {
+              id = `activity-${urnMatch[1]}`;
+            } else {
+              // Fallback: use a hash of the content to ensure stability
+              const contentForHash = container.querySelector('.feed-shared-update-v2__description')?.textContent?.trim() || '';
+              const timeForHash = container.querySelector('.feed-shared-actor__sub-description')?.textContent?.trim() || '';
+              id = `post-${simpleHash(contentForHash + timeForHash)}`;
+            }
+          }
 
           // Extract author
           const authorEl = container.querySelector('.feed-shared-actor__name span');

@@ -3,7 +3,7 @@
  */
 
 import * as browserModule from '../browser.js';
-import { extractPageContent } from '../scrapers/generic.js';
+import { extractPageContent, executePageScript } from '../scrapers/generic.js';
 import type { GlobalOptions, ScrapeOptions, PageContent } from '../types.js';
 
 /**
@@ -80,12 +80,8 @@ export async function script(
 ): Promise<void> {
   const page = await browserModule.getPage();
 
-  // Wrap user code in async IIFE to support await
-  const wrappedCode = `(async () => {
-    ${code}
-  })()`;
-
-  const result = await page.evaluate(wrappedCode);
+  // Use the properly validated executePageScript function
+  const result = await executePageScript(page, code);
 
   console.log(JSON.stringify(result, null, 2));
 }

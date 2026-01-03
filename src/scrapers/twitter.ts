@@ -116,6 +116,25 @@ export async function checkTwitterErrors(page: Page): Promise<PlatformErrorType 
     return 'suspended';
   }
 
+  // Check for private/protected accounts
+  if (content.includes("These posts are protected") ||
+      content.includes("This account is private")) {
+    return 'private_account';
+  }
+
+  // Check for blocked users
+  if (content.includes("You're blocked") ||
+      content.includes("You are blocked")) {
+    return 'blocked';
+  }
+
+  // Check for deleted/unavailable posts
+  if (content.includes("This post is unavailable") ||
+      content.includes("doesn't exist") ||
+      content.includes("page doesn't exist")) {
+    return 'not_found';
+  }
+
   if (content.includes("Rate limit exceeded")) {
     return 'rate_limited';
   }
@@ -322,7 +341,7 @@ export async function navigateToProfile(
  */
 export async function scrollForMore(page: Page, maxAttempts = 3): Promise<boolean> {
   let attempts = 0;
-  const previousHeight = await page.evaluate(() => document.body.scrollHeight);
+  let previousHeight = await page.evaluate(() => document.body.scrollHeight);
 
   while (attempts < maxAttempts) {
     // Scroll to bottom
@@ -334,6 +353,8 @@ export async function scrollForMore(page: Page, maxAttempts = 3): Promise<boolea
     // Check if height changed
     const newHeight = await page.evaluate(() => document.body.scrollHeight);
     if (newHeight > previousHeight) {
+      previousHeight = newHeight; // Update for next iteration
+      attempts = 0; // Reset attempts counter on success
       return true;
     }
 

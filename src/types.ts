@@ -482,7 +482,9 @@ export type PlatformErrorType =
   | 'suspended'
   | 'rate_limited'
   | 'login_required'
-  | 'restricted';
+  | 'restricted'
+  | 'private_account'
+  | 'blocked';
 
 // ============================================================================
 // Options Types
