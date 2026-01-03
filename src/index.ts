@@ -40,6 +40,7 @@ import {
   createCompletionCommand,
   startInteractiveMode,
 } from "./cli/index.js";
+import { createMCPCommand } from "./cli/mcp.js";
 import { setOutputOptions } from "./output/index.js";
 
 const program = new Command();
@@ -106,6 +107,7 @@ program.addCommand(createMediaCommand());
 program.addCommand(createGrokCommand());
 program.addCommand(createConfigCommand());
 program.addCommand(createCompletionCommand());
+program.addCommand(createMCPCommand());
 
 // Handle interactive mode before parsing
 const args = process.argv.slice(2);

@@ -272,14 +272,21 @@ These items from specs/09-12 are now in scope:
 - [ ] Interactive demo
 
 ### Claude Integration (specs/12-claude-integration.md)
-- [ ] MCP server implementation
+- [x] MCP server implementation (src/mcp/, `x mcp` command)
 - [x] Claude Code skill integration (.claude/skills/x-cli/)
 - [x] Skill documentation (commands.md, examples.md, troubleshooting.md)
-- [ ] Tool definitions for Claude
+- [x] Tool definitions for Claude (24 tools: posts, timelines, search, users, engagement, DMs, bookmarks)
 
 ---
 
 ## Recent Enhancements
+
+**2025-01-03 (MCP Server):**
+- Implemented Model Context Protocol server for Claude integration
+- Created src/mcp/ module with server, tools, and handlers
+- 24 tools: posts, timelines, search, users, engagement, following, DMs, bookmarks
+- Added `x mcp` command to start server
+- Created mcp.json configuration file for Claude Desktop
 
 **2025-01-03 (Homebrew Formula):**
 - Created homebrew/x-cli.rb formula template
