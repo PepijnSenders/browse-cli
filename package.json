@@ -1,5 +1,5 @@
 {
-  "name": "@pashask/x-cli",
+  "name": "@pepijnsenders/x-cli",
   "version": "0.1.0",
   "description": "A fast, type-safe CLI for X (Twitter)",
   "type": "module",
@@ -9,12 +9,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ps/x-cli.git"
+    "url": "git+https://github.com/PepijnSenders/x-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/ps/x-cli/issues"
+    "url": "https://github.com/PepijnSenders/x-cli/issues"
   },
-  "homepage": "https://github.com/ps/x-cli#readme",
+  "homepage": "https://github.com/PepijnSenders/x-cli#readme",
   "files": [
     "dist/index.js",
     "README.md",
@@ -52,7 +52,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "author": "pashask",
+  "author": "PepijnSenders",
   "license": "MIT",
   "keywords": [
     "twitter",

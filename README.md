@@ -4,8 +4,8 @@
 
 **Fast, type-safe CLI for X (Twitter)**
 
-[![CI](https://github.com/ps/x-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/ps/x-cli/actions)
-[![License](https://img.shields.io/github/license/ps/x-cli)](LICENSE)
+[![CI](https://github.com/PepijnSenders/x-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/PepijnSenders/x-cli/actions)
+[![License](https://img.shields.io/github/license/PepijnSenders/x-cli)](LICENSE)
 
 [Installation](#installation) · [Quick Start](#quick-start) · [Commands](#commands)
 
@@ -27,19 +27,19 @@
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew tap ps/x-cli
+brew tap PepijnSenders/x-cli
 brew install x-cli
 ```
 
 ### npm
 
 ```bash
-npm install -g @pashask/x-cli
+npm install -g @pepijnsenders/x-cli
 ```
 
 ### Binary Download
 
-Download pre-built binaries from [Releases](https://github.com/ps/x-cli/releases):
+Download pre-built binaries from [Releases](https://github.com/PepijnSenders/x-cli/releases):
 - `x-cli-darwin-arm64.tar.gz` — macOS Apple Silicon
 - `x-cli-darwin-x64.tar.gz` — macOS Intel
 - `x-cli-linux-x64.tar.gz` — Linux x64
@@ -48,7 +48,7 @@ Download pre-built binaries from [Releases](https://github.com/ps/x-cli/releases
 ### From Source
 
 ```bash
-git clone https://github.com/ps/x-cli
+git clone https://github.com/PepijnSenders/x-cli
 cd x-cli
 bun install
 bun run build
