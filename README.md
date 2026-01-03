@@ -24,6 +24,27 @@
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew tap ps/x-cli
+brew install x-cli
+```
+
+### npm
+
+```bash
+npm install -g @pashask/x-cli
+```
+
+### Binary Download
+
+Download pre-built binaries from [Releases](https://github.com/ps/x-cli/releases):
+- `x-cli-darwin-arm64.tar.gz` — macOS Apple Silicon
+- `x-cli-darwin-x64.tar.gz` — macOS Intel
+- `x-cli-linux-x64.tar.gz` — Linux x64
+- `x-cli-win-x64.zip` — Windows x64
+
 ### From Source
 
 ```bash

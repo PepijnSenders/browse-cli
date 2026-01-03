@@ -261,7 +261,7 @@ These items from specs/09-12 are now in scope:
 
 ### Release & Distribution (specs/09-release-distribution.md)
 - [x] npm package preparation (scoped @pashask/x-cli, files, .npmignore)
-- [ ] Homebrew formula
+- [x] Homebrew formula (homebrew/x-cli.rb, update script)
 - [x] Binary releases (darwin-arm64, darwin-x64, linux-x64, win-x64)
 - [x] GitHub Actions CI/CD
 - [x] Version management (release script)
@@ -280,6 +280,12 @@ These items from specs/09-12 are now in scope:
 ---
 
 ## Recent Enhancements
+
+**2025-01-03 (Homebrew Formula):**
+- Created homebrew/x-cli.rb formula template
+- Multi-platform support: macOS ARM64, macOS Intel, Linux x64
+- Created scripts/update-homebrew.sh to update SHA256 hashes after release
+- Updated README.md with Homebrew, npm, and binary installation options
 
 **2025-01-03 (npm Package Preparation):**
 - Scoped package name: @pashask/x-cli
