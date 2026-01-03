@@ -1,0 +1,554 @@
+import { z } from 'zod';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import {
+  type Tool,
+  ListToolsRequestSchema,
+  CallToolRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+
+/**
+ * Tool Input Schemas
+ */
+
+// Browser Tools (Phase 2)
+const navigateSchema = z.object({
+  url: z.string().describe('URL to navigate to'),
+});
+
+const getPageInfoSchema = z.object({});
+
+const listPagesSchema = z.object({});
+
+const switchPageSchema = z.object({
+  index: z.number().describe('Page index from list_pages'),
+});
+
+const takeScreenshotSchema = z.object({
+  fullPage: z.boolean().optional().describe('Capture full page or just viewport (default: false)'),
+});
+
+// Generic Tools (Phase 3)
+const scrapePageSchema = z.object({
+  selector: z.string().optional().describe('CSS selector to scope extraction (optional)'),
+});
+
+const executeScriptSchema = z.object({
+  script: z.string().describe('JavaScript code to execute (must return JSON-serializable value)'),
+});
+
+// Twitter Tools (Phase 4)
+const scrapeTwitterProfileSchema = z.object({
+  username: z.string().describe('Twitter username (without @)'),
+});
+
+const scrapeTwitterTimelineSchema = z.object({
+  username: z.string().optional().describe('Username to scrape (omit for home timeline)'),
+  count: z.number().optional().describe('Number of tweets to fetch (default: 20, max: 100)'),
+});
+
+const scrapeTwitterPostSchema = z.object({
+  url: z.string().describe('Full URL of the tweet (e.g., https://x.com/user/status/123)'),
+});
+
+const scrapeTwitterSearchSchema = z.object({
+  query: z.string().describe('Search query (supports Twitter search operators)'),
+  count: z.number().optional().describe('Number of results (default: 20, max: 100)'),
+});
+
+// LinkedIn Tools (Phase 5)
+const scrapeLinkedInProfileSchema = z.object({
+  url: z.string().describe('Full LinkedIn profile URL'),
+});
+
+const scrapeLinkedInPostsSchema = z.object({
+  url: z.string().describe('LinkedIn profile or company URL'),
+  count: z.number().optional().describe('Number of posts (default: 10, max: 50)'),
+});
+
+const scrapeLinkedInSearchSchema = z.object({
+  query: z.string().describe('Search query'),
+  type: z.enum(['people', 'posts', 'companies']).optional().describe('Type of search (default: people)'),
+  count: z.number().optional().describe('Number of results (default: 10, max: 50)'),
+});
+
+/**
+ * Tool Definitions
+ */
+export const tools: Tool[] = [
+  // Browser Tools
+  {
+    name: 'navigate',
+    description: 'Navigate the active page to a URL',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'URL to navigate to',
+        },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'get_page_info',
+    description: 'Get information about the current page',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'list_pages',
+    description: 'List all pages (tabs) available for control',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'switch_page',
+    description: 'Switch to a different page (tab) by index',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        index: {
+          type: 'number',
+          description: 'Page index from list_pages',
+        },
+      },
+      required: ['index'],
+    },
+  },
+  {
+    name: 'take_screenshot',
+    description: 'Take a screenshot of the current page',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        fullPage: {
+          type: 'boolean',
+          description: 'Capture full page or just viewport (default: false)',
+        },
+      },
+    },
+  },
+
+  // Generic Tools
+  {
+    name: 'scrape_page',
+    description: 'Extract text content and links from the current page',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'string',
+          description: 'CSS selector to scope extraction (optional)',
+        },
+      },
+    },
+  },
+  {
+    name: 'execute_script',
+    description: 'Execute custom JavaScript on the page',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        script: {
+          type: 'string',
+          description: 'JavaScript code to execute (must return JSON-serializable value)',
+        },
+      },
+      required: ['script'],
+    },
+  },
+
+  // Twitter Tools
+  {
+    name: 'scrape_twitter_profile',
+    description: "Scrape a Twitter user's profile information",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'Twitter username (without @)',
+        },
+      },
+      required: ['username'],
+    },
+  },
+  {
+    name: 'scrape_twitter_timeline',
+    description: "Scrape tweets from a user's timeline or home feed",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'Username to scrape (omit for home timeline)',
+        },
+        count: {
+          type: 'number',
+          description: 'Number of tweets to fetch (default: 20, max: 100)',
+        },
+      },
+    },
+  },
+  {
+    name: 'scrape_twitter_post',
+    description: 'Scrape a single tweet and its thread context',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'Full URL of the tweet (e.g., https://x.com/user/status/123)',
+        },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'scrape_twitter_search',
+    description: 'Search Twitter for tweets matching a query',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search query (supports Twitter search operators)',
+        },
+        count: {
+          type: 'number',
+          description: 'Number of results (default: 20, max: 100)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+
+  // LinkedIn Tools
+  {
+    name: 'scrape_linkedin_profile',
+    description: "Scrape a LinkedIn user's profile",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'Full LinkedIn profile URL',
+        },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'scrape_linkedin_posts',
+    description: 'Scrape posts from a LinkedIn user or company page',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'LinkedIn profile or company URL',
+        },
+        count: {
+          type: 'number',
+          description: 'Number of posts (default: 10, max: 50)',
+        },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'scrape_linkedin_search',
+    description: 'Search LinkedIn for people, posts, or companies',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search query',
+        },
+        type: {
+          type: 'string',
+          enum: ['people', 'posts', 'companies'],
+          description: 'Type of search (default: people)',
+        },
+        count: {
+          type: 'number',
+          description: 'Number of results (default: 10, max: 50)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+];
+
+/**
+ * Schema mapping for validation
+ */
+const schemaMap = {
+  // Browser Tools
+  navigate: navigateSchema,
+  get_page_info: getPageInfoSchema,
+  list_pages: listPagesSchema,
+  switch_page: switchPageSchema,
+  take_screenshot: takeScreenshotSchema,
+
+  // Generic Tools
+  scrape_page: scrapePageSchema,
+  execute_script: executeScriptSchema,
+
+  // Twitter Tools
+  scrape_twitter_profile: scrapeTwitterProfileSchema,
+  scrape_twitter_timeline: scrapeTwitterTimelineSchema,
+  scrape_twitter_post: scrapeTwitterPostSchema,
+  scrape_twitter_search: scrapeTwitterSearchSchema,
+
+  // LinkedIn Tools
+  scrape_linkedin_profile: scrapeLinkedInProfileSchema,
+  scrape_linkedin_posts: scrapeLinkedInPostsSchema,
+  scrape_linkedin_search: scrapeLinkedInSearchSchema,
+} as const;
+
+/**
+ * Tool Handlers (Stubs for now)
+ */
+
+async function handleNavigate(args: z.infer<typeof navigateSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: navigate to ${args.url}`,
+      },
+    ],
+  };
+}
+
+async function handleGetPageInfo(_args: z.infer<typeof getPageInfoSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: 'Not implemented yet: get_page_info',
+      },
+    ],
+  };
+}
+
+async function handleListPages(_args: z.infer<typeof listPagesSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: 'Not implemented yet: list_pages',
+      },
+    ],
+  };
+}
+
+async function handleSwitchPage(args: z.infer<typeof switchPageSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: switch to page ${args.index}`,
+      },
+    ],
+  };
+}
+
+async function handleTakeScreenshot(args: z.infer<typeof takeScreenshotSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: take screenshot (fullPage: ${args.fullPage ?? false})`,
+      },
+    ],
+  };
+}
+
+async function handleScrapePage(args: z.infer<typeof scrapePageSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: scrape page${args.selector ? ` with selector "${args.selector}"` : ''}`,
+      },
+    ],
+  };
+}
+
+async function handleExecuteScript(args: z.infer<typeof executeScriptSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: execute script (${args.script.length} chars)`,
+      },
+    ],
+  };
+}
+
+async function handleScrapeTwitterProfile(args: z.infer<typeof scrapeTwitterProfileSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: scrape Twitter profile @${args.username}`,
+      },
+    ],
+  };
+}
+
+async function handleScrapeTwitterTimeline(args: z.infer<typeof scrapeTwitterTimelineSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: scrape Twitter timeline${args.username ? ` for @${args.username}` : ''} (count: ${args.count ?? 20})`,
+      },
+    ],
+  };
+}
+
+async function handleScrapeTwitterPost(args: z.infer<typeof scrapeTwitterPostSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: scrape Twitter post ${args.url}`,
+      },
+    ],
+  };
+}
+
+async function handleScrapeTwitterSearch(args: z.infer<typeof scrapeTwitterSearchSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: search Twitter for "${args.query}" (count: ${args.count ?? 20})`,
+      },
+    ],
+  };
+}
+
+async function handleScrapeLinkedInProfile(args: z.infer<typeof scrapeLinkedInProfileSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: scrape LinkedIn profile ${args.url}`,
+      },
+    ],
+  };
+}
+
+async function handleScrapeLinkedInPosts(args: z.infer<typeof scrapeLinkedInPostsSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: scrape LinkedIn posts from ${args.url} (count: ${args.count ?? 10})`,
+      },
+    ],
+  };
+}
+
+async function handleScrapeLinkedInSearch(args: z.infer<typeof scrapeLinkedInSearchSchema>) {
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Not implemented yet: search LinkedIn for "${args.query}" (type: ${args.type ?? 'people'}, count: ${args.count ?? 10})`,
+      },
+    ],
+  };
+}
+
+/**
+ * Handler mapping
+ */
+const handlers = {
+  // Browser Tools
+  navigate: handleNavigate,
+  get_page_info: handleGetPageInfo,
+  list_pages: handleListPages,
+  switch_page: handleSwitchPage,
+  take_screenshot: handleTakeScreenshot,
+
+  // Generic Tools
+  scrape_page: handleScrapePage,
+  execute_script: handleExecuteScript,
+
+  // Twitter Tools
+  scrape_twitter_profile: handleScrapeTwitterProfile,
+  scrape_twitter_timeline: handleScrapeTwitterTimeline,
+  scrape_twitter_post: handleScrapeTwitterPost,
+  scrape_twitter_search: handleScrapeTwitterSearch,
+
+  // LinkedIn Tools
+  scrape_linkedin_profile: handleScrapeLinkedInProfile,
+  scrape_linkedin_posts: handleScrapeLinkedInPosts,
+  scrape_linkedin_search: handleScrapeLinkedInSearch,
+} as const;
+
+/**
+ * Register all tools with the MCP server
+ */
+export function registerTools(server: Server) {
+  // Register list tools handler
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools,
+  }));
+
+  // Register call tool handler
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    // Validate tool exists
+    if (!(name in handlers)) {
+      throw new Error(`Unknown tool: ${name}`);
+    }
+
+    // Get schema and handler
+    const schema = schemaMap[name as keyof typeof schemaMap];
+    const handler = handlers[name as keyof typeof handlers];
+
+    // Validate arguments
+    let validatedArgs;
+    try {
+      validatedArgs = schema.parse(args);
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Invalid arguments: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    // Execute handler
+    try {
+      return await handler(validatedArgs as never);
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  });
+}

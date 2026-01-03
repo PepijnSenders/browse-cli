@@ -1,432 +1,395 @@
-# X-CLI Implementation Plan
+# Session Scraper MCP - Implementation Plan
 
-## Status: P1 Complete | P2 Complete | P3 Complete | P4 Complete | P5 Complete | P6 Complete | P7 Complete | P8 Complete
+## Overview
 
-This document tracks the implementation of x-cli based on the spec phases.
+MCP server for scraping "uncrawlable" sites using existing browser session via Playwriter extension.
 
----
+**Repository:** `@pep/session-scraper-mcp`
 
-## Phase 1: Foundation (specs/01-foundation.md)
-
-### Setup
-- [x] Project initialization with Bun + pnpm
-- [x] TypeScript configuration (strict mode)
-- [x] Directory structure (src/cli, src/api, src/types, src/output, src/config)
-- [x] Dependencies installed (commander, chalk, ora, cli-table3, arctic, zod)
-
-### Types & Validation
-- [x] User schema (UserSchema) with public_metrics
-- [x] Tweet schema (TweetSchema) with entities, metrics
-- [x] Media schema (MediaSchema)
-- [x] List schema (ListSchema)
-- [x] Space schema (SpaceSchema) - types only
-- [x] DM schemas (DMEventSchema, DMConversationSchema) - types only
-- [x] Poll schema (PollSchema)
-- [x] Place schema (PlaceSchema)
-- [x] Response wrappers with pagination (PaginatedResponse)
-- [x] Error classes (XCLIError, AuthError, RateLimitError, APIError, ValidationError, ConfigError, NotFoundError)
-
-### Authentication
-- [x] OAuth 2.0 PKCE flow using Arctic Twitter provider
-- [x] Token storage with AES-256-GCM encryption
-- [x] Machine-specific key derivation
-- [x] `x auth login` - opens browser, completes OAuth
-- [x] `x auth logout` - clears stored tokens
-- [x] `x auth status` - shows current user info
-- [x] `x auth refresh` - force token refresh
-
-### HTTP Client
-- [x] Base URL configuration (api.twitter.com/2)
-- [x] Auto-attach Bearer token
-- [x] Rate limit header parsing (x-rate-limit-*)
-- [x] Auto-retry on 429 with exponential backoff
-- [x] Auto-retry on 5xx (max 3 attempts)
-- [x] Timeout configuration (30s default)
-- [x] Zod response validation
-
-### Output Formatters
-- [x] JSON formatter (minimal, single line)
-- [x] Pretty formatter with chalk colors
-- [x] Relative timestamps ("2h ago")
-- [x] Number formatting (1.5K, 2.3M)
-- [x] Spinner support with ora
-- [x] Table support with cli-table3
-
-### Global Options
-- [x] `--json` / `-j` flag
-- [x] `--quiet` / `-q` flag
-- [x] `--verbose` / `-v` flag
-- [x] `--no-color` flag
+**Specs:** See `specs/` directory for detailed specifications.
 
 ---
 
-## Phase 2: Posts (specs/02-posts.md)
+## Phase 1: Foundation (Priority: HIGH)
 
-### Post CRUD
-- [x] `x post create <text>` - create new post
-- [x] `x post get <id>` - get post by ID
-- [x] `x post delete <id>` - delete post
-- [x] `x post reply <id> <text>` - reply to post
-- [x] `x post quote <id> <text>` - quote post
-- [x] `x post create --media <file>` - post with media attachment
+**Spec Reference:** [specs/01-overview.md](specs/01-overview.md)
 
-### Timelines
-- [x] `x timeline home` - home timeline
-- [x] `x timeline user <username>` - user's posts
-- [x] `x timeline mentions` - mentions timeline
-- [x] `--limit` pagination option
-- [x] `--since-id` option
+### 1.1 Project Setup
+- [x] Initialize project with `package.json`
+- [x] Configure TypeScript
+- [x] Setup Bun as runtime/bundler
+- [x] Configure README.md with usage instructions
+- [x] Create basic project structure:
+  ```
+  src/
+  ├── index.ts              # MCP server entry point
+  ├── browser.ts            # Browser connection management
+  ├── tools/
+  │   └── index.ts          # Tool definitions (MCP schema)
+  └── scrapers/
+      ├── twitter.ts        # Twitter/X extraction logic
+      ├── linkedin.ts       # LinkedIn extraction logic
+      └── generic.ts        # Generic page scraping
+  ```
 
-### Search
-- [x] `x search <query>` - search posts
-- [x] Advanced search operators (from:, #, etc.)
-- [x] `--limit` option
+**Verify:** `ls src/` shows expected structure ✓
 
-### Engagement
-- [x] `x like <id>` - like a post
-- [x] `x unlike <id>` - unlike a post
-- [x] `x repost <id>` - repost
-- [x] `x unrepost <id>` - remove repost
-- [x] `x bookmark add <id>` - bookmark post
-- [x] `x bookmark list` - list bookmarks
-- [x] `x bookmark remove <id>` - remove bookmark
+### 1.2 MCP Server Core
+- [x] Setup MCP server using `@modelcontextprotocol/sdk`
+- [x] Implement stdio transport
+- [x] Add server info/capabilities
+- [x] Basic error handling wrapper
 
----
+**Verify:** `bun run src/index.ts` starts without error and outputs MCP protocol messages ✓
 
-## Phase 3: Users (specs/03-users.md)
+### 1.3 Browser Connection
+- [x] Connect to Playwriter relay server via `playwright-core` CDP
+- [x] Implement connection status checking
+- [x] Handle reconnection on disconnect
+- [x] Environment variable configuration (PLAYWRITER_HOST, PLAYWRITER_PORT)
 
-### User Lookup
-- [x] `x user <username>` - lookup by username
-- [x] `x me` - current authenticated user
-- [x] `x user --id <id>` - lookup by ID
-- [x] `x user search <query>` - search users (via tweet search)
-
-### Following
-- [x] `x follow <username>` - follow user
-- [x] `x unfollow <username>` - unfollow user
-- [x] `x following` - list your following
-- [x] `x following <username>` - list user's following
-- [x] `x followers` - list your followers
-- [x] `x followers <username>` - list user's followers
-
-### Block/Mute
-- [x] `x block <username>` - block user
-- [x] `x unblock <username>` - unblock user
-- [x] `x blocks` - list blocked users
-- [x] `x mute <username>` - mute user
-- [x] `x unmute <username>` - unmute user
-- [x] `x mutes` - list muted users
+**Verify:** With Playwriter extension active, server connects and `list_pages` returns available tabs
 
 ---
 
-## Phase 4: Lists (specs/04-lists.md)
+## Phase 2: Browser Tools (Priority: HIGH)
 
-### List CRUD
-- [x] `x list create <name>` - create list
-- [x] `x list create --private` - create private list
-- [x] `x list get <id>` - get list details
-- [x] `x list update <id>` - update list
-- [x] `x list delete <id>` - delete list
+**Spec Reference:** [specs/02-mcp-tools.md](specs/02-mcp-tools.md) (Browser Tools section)
 
-### List Content
-- [x] `x list timeline <id>` - list timeline
-- [x] `x lists` - your lists (owned)
-- [x] `x lists owned` - lists you own
-- [x] `x lists followed` - lists you follow
-- [x] `x lists pinned` - pinned lists
+### 2.1 Navigation
+- [ ] `navigate` - Navigate to URL
+  - Input: `{ url: string }`
+  - Output: `{ success, url, title }`
+  - Validate URL format
+  - Handle timeouts
 
-### List Membership
-- [x] `x list members <id>` - list members
-- [x] `x list add <id> <username>` - add member
-- [x] `x list remove <id> <username>` - remove member
+**Verify:** `navigate` to `https://example.com` returns `{ success: true, url: "https://example.com/", title: "Example Domain" }`
 
-### List Following
-- [x] `x list follow <id>` - follow list
-- [x] `x list unfollow <id>` - unfollow list
-- [x] `x list pin <id>` - pin list
-- [x] `x list unpin <id>` - unpin list
+### 2.2 Page Info
+- [ ] `get_page_info` - Get current page URL/title
+  - Input: `{}`
+  - Output: `{ url, title }`
 
----
+- [ ] `list_pages` - List all controlled tabs
+  - Input: `{}`
+  - Output: `{ pages: [{ index, url, title }] }`
 
-## Phase 5: Direct Messages (specs/05-direct-messages.md)
+- [ ] `switch_page` - Switch to different tab
+  - Input: `{ index: number }`
+  - Output: `{ success, url, title }`
 
-### DM Conversations
-- [x] `x dm list` - list conversations
-- [x] `x dm view <username>` - view conversation with user
-- [x] `x dm conversation <id>` - view by conversation ID
-- [x] DM API client implementation
+**Verify:** Open 2 tabs with Playwriter, `list_pages` returns 2 entries, `switch_page` changes active tab
 
-### DM Send/Delete
-- [x] `x dm send <username> <text>` - send DM
-- [x] `x dm send --media <file>` - DM with media
-- [x] `x dm delete <event_id>` - delete message
+### 2.3 Screenshot
+- [ ] `take_screenshot` - Capture page screenshot
+  - Input: `{ fullPage?: boolean }`
+  - Output: Base64 PNG image content block
+  - Handle viewport vs full page
 
-### Group DM
-- [x] `x dm group -u user1 -u user2 <text>` - create group DM
+**Verify:** `take_screenshot` returns valid base64 PNG that decodes to an image
 
 ---
 
-## Phase 6: Spaces & Media (specs/06-spaces-media.md)
+## Phase 3: Generic Scraping (Priority: HIGH)
 
-### Spaces
-- [x] `x space get <id>` - get space details
-- [x] `x space search <query>` - search spaces
-- [x] `x space search --state live` - filter by state
-- [x] `x spaces <username>` - user's spaces
-- [x] `x space buyers <id>` - get ticketed space buyers
-- [x] Space API client implementation
+**Spec Reference:** [specs/05-generic-scraper.md](specs/05-generic-scraper.md)
 
-### Media Upload
-- [x] `x media upload <file>` - upload media
-- [x] Simple upload for images < 5MB
-- [x] Chunked upload for videos/large files
-- [x] `x media upload --alt <text>` - set alt text
-- [x] `x media status <id>` - check processing status
-- [x] `x media wait <id>` - wait for processing
-- [x] Progress indicator during upload
-- [x] Media API client implementation
+### 3.1 Page Scraping
+- [ ] `scrape_page` - Extract text/links/images from page
+  - Input: `{ selector?: string }`
+  - Output: `{ url, title, text, links, images }`
+  - Default: scrape main content
+  - With selector: scope to element
+  - Implement content cleaning/normalization
+  - Limit output sizes (100 links, 50 images, 100k chars)
 
----
+**Verify:** On `https://news.ycombinator.com`, `scrape_page` returns text containing "Hacker News" and links array with entries
 
-## Phase 7: Grok Integration (specs/07-grok-integration.md)
+### 3.2 Custom Scripts
+- [ ] `execute_script` - Run custom JavaScript
+  - Input: `{ script: string }`
+  - Output: Script return value (JSON-serializable)
+  - Wrap in async IIFE for await support
+  - Size limit on output (1MB)
 
-### Grok Client
-- [x] Grok API client (api.x.ai/v1)
-- [x] XAI_API_KEY environment variable support
-- [x] Chat completion endpoint
-
-### Natural Language
-- [x] `x grok "<natural language>"` - parse and execute
-- [x] Command parsing with confidence scoring
-- [x] NL to CLI command translation
-
-### Summarization
-- [x] `x grok summarize <post_id>` - summarize thread
-- [x] `x grok summarize @<username>` - summarize user's posts
-- [x] `--length` option (brief, detailed)
-
-### Analysis
-- [x] `x grok analyze <post_id>` - analyze post
-- [x] Sentiment analysis
-- [x] Topic extraction
-- [x] Engagement prediction
-
-### Content Generation
-- [x] `x grok draft <topic>` - draft a post
-- [x] `x grok draft --tone <tone>` - specify tone
-- [x] `x grok reply <post_id>` - suggest replies
-- [x] `x grok ask <question>` - ask about timeline
+**Verify:** `execute_script` with `return document.title` returns page title string
 
 ---
 
-## Phase 8: Polish & Release (specs/08-polish-release.md)
+## Phase 4: Twitter Scraper (Priority: MEDIUM)
 
-### Interactive Mode
-- [x] `x -i` / `x --interactive` - REPL mode
-- [x] Command history (up arrow)
-- [x] Tab completion in REPL
-- [x] `clear` / `exit` / `history` commands
-- [x] Graceful Ctrl+C handling
+**Spec Reference:** [specs/03-twitter-scraper.md](specs/03-twitter-scraper.md)
 
-### Shell Completions
-- [x] `x completion bash` - bash completions
-- [x] `x completion zsh` - zsh completions
-- [x] `x completion fish` - fish completions
+### 4.1 Profile Scraping
+- [ ] `scrape_twitter_profile` - Get user profile info
+  - Input: `{ username: string }`
+  - Output: Profile object (see specs/03-twitter-scraper.md)
+  - Navigate to `https://x.com/{username}`
+  - Handle: user not found, suspended, private
+  - Parse follower counts (K, M suffixes)
 
-### Configuration Commands
-- [x] `x config set <key> <value>` - set config
-- [x] `x config get <key>` - get config value
-- [x] `x config list` - list all config
-- [x] `x config reset` - reset to defaults
-- [x] Config file at ~/.config/x-cli/config.json
+**Verify:** `scrape_twitter_profile` for `elonmusk` returns object with `username`, `displayName`, `followersCount` > 0
 
-### Documentation
-- [x] README.md with features, install, quick start
-- [x] Command reference in README
-- [x] CHANGELOG.md
-- [x] CONTRIBUTING.md
+### 4.2 Timeline Scraping
+- [ ] `scrape_twitter_timeline` - Get tweets from timeline
+  - Input: `{ username?: string, count?: number }`
+  - Output: `{ tweets: [...], hasMore }`
+  - User timeline if username provided, else home
+  - Implement infinite scroll pagination
+  - Detect tweet types (original, retweet, reply)
+  - Extract metrics (likes, retweets, replies, views)
 
-### Testing & Quality
-- [x] Type checking passes (bun run typecheck)
-- [x] Test suite (99 unit tests, 99.7% line coverage, 100% function coverage)
-- [x] Integration tests (12 E2E tests, run with RUN_INTEGRATION_TESTS=true)
-- [x] Build optimization (minification enabled; ~58MB compiled, ~324KB Node bundle)
+**Verify:** `scrape_twitter_timeline` with `count: 5` returns exactly 5 tweets with `id`, `text`, `metrics`
 
----
+### 4.3 Post Scraping
+- [ ] `scrape_twitter_post` - Get single tweet + thread
+  - Input: `{ url: string }`
+  - Output: `{ tweet, thread, replies }`
+  - Extract thread context if reply
+  - Get top replies
 
-## Out of Scope / Future Work
+**Verify:** `scrape_twitter_post` with valid tweet URL returns `tweet` object with `text` and `metrics`
 
-These items from specs/09-12 are now in scope:
+### 4.4 Search
+- [ ] `scrape_twitter_search` - Search tweets
+  - Input: `{ query: string, count?: number }`
+  - Output: Same as timeline
+  - Click "Latest" tab for chronological
+  - Support search operators
 
-### Release & Distribution (specs/09-release-distribution.md)
-- [x] npm package preparation (scoped @pashask/x-cli, files, .npmignore)
-- [x] Homebrew formula (homebrew/x-cli.rb, update script)
-- [x] Binary releases (darwin-arm64, darwin-x64, linux-x64, win-x64)
-- [x] GitHub Actions CI/CD
-- [x] Version management (release script)
-
-### Website (specs/11-website.md)
-- [x] Landing page (docs/index.html, docs/styles.css)
-- [x] GitHub Pages deployment workflow
-- [x] Interactive demo (docs/demo.svg - static terminal mockup)
-
-### Claude Integration (specs/12-claude-integration.md)
-- [x] MCP server implementation (src/mcp/, `x mcp` command)
-- [x] Claude Code skill integration (.claude/skills/x-cli/)
-- [x] Skill documentation (commands.md, examples.md, troubleshooting.md)
-- [x] Tool definitions for Claude (24 tools: posts, timelines, search, users, engagement, DMs, bookmarks)
+**Verify:** `scrape_twitter_search` for `"AI"` returns tweets array with matching content
 
 ---
 
-## Recent Enhancements
+## Phase 5: LinkedIn Scraper (Priority: MEDIUM)
 
-**2025-01-03 (Integration Tests):**
-- Created tests/integration.test.ts with 12 E2E test cases
-- Tests for: auth, timeline, user lookup, search, post lifecycle, engagement, bookmarks, following
-- Skipped by default, run with: RUN_INTEGRATION_TESTS=true bun test tests/integration.test.ts
-- Completes all testing phases
+**Spec Reference:** [specs/04-linkedin-scraper.md](specs/04-linkedin-scraper.md)
 
-**2025-01-03 (Website Demo):**
-- Created docs/demo.svg - static terminal mockup showing CLI features
-- Added demo section to website with styling
-- Shows auth, timeline, posting, and Grok AI commands in action
+### 5.1 Profile Scraping
+- [ ] `scrape_linkedin_profile` - Get profile info
+  - Input: `{ url: string }`
+  - Output: Profile object (see specs/04-linkedin-scraper.md)
+  - Handle lazy-loaded sections
+  - Click "Show all" for experience/education
+  - Human-like delays between actions
 
-**2025-01-03 (Test Coverage - 99.7%):**
-- Added 3 more tests for TTY-dependent branches (99 total tests)
-- Achieved 99.7% line coverage by mocking process.stdout.isTTY
-- All output modules (index.ts, json.ts, pretty.ts) now at or near 100%
+**Verify:** `scrape_linkedin_profile` returns object with `name`, `headline`, `experience` array
 
-**2025-01-03 (Test Coverage - 98%):**
-- Added 14 new tests for print functions, JSON mode, output functions (96 total tests)
-- Achieved 100% function coverage, 98% line coverage
-- Console mocking with spyOn for print function tests
-- Remaining uncovered: TTY-dependent branches, cli-table3 rendering
+### 5.2 Posts Scraping
+- [ ] `scrape_linkedin_posts` - Get user's posts
+  - Input: `{ url: string, count?: number }`
+  - Output: `{ posts: [...] }`
+  - Navigate to `/recent-activity/all/`
+  - Handle "see more" expansion
 
-**2025-01-03 (Website Landing Page):**
-- Created docs/index.html with hero, installation, features, quick start, commands
-- Created docs/styles.css with dark mode theme, responsive design
-- Created .github/workflows/pages.yml for GitHub Pages deployment
-- Single-page design with all key information above the fold
+**Verify:** `scrape_linkedin_posts` returns posts array with `text`, `metrics` for each
 
-**2025-01-03 (Test Coverage - 93%):**
-- Added 7 new tests for output options and spinner creation (82 total tests)
-- Improved line coverage from 92% to 93%, function coverage from 87% to 90%
-- Remaining uncovered code is console output functions (printJSON, printSuccess, etc.)
+### 5.3 Search
+- [ ] `scrape_linkedin_search` - Search people/companies/posts
+  - Input: `{ query: string, type?: 'people'|'companies'|'posts', count?: number }`
+  - Output: Search results
+  - Handle pagination
 
-**2025-01-03 (Test Coverage - 92%):**
-- Added 26 new tests for error classes and JSON formatting (75 total tests)
-- Improved line coverage from 89% to 92%
-- Error types now at 100% coverage (XCLIError, AuthError, RateLimitError, APIError, ValidationError, ConfigError, NetworkError)
-- JSON formatting tests for formatJSONError
-
-**2025-01-03 (Test Coverage - 89%):**
-- Added 21 new tests for output formatting (49 total tests)
-- Improved line coverage from 85% to 89%
-- Tests cover: username formatting, tweet formatting, user profiles, error formatting, relative time
-- Tests for various verification types (blue, business, government)
-
-**2025-01-03 (MCP Server):**
-- Implemented Model Context Protocol server for Claude integration
-- Created src/mcp/ module with server, tools, and handlers
-- 24 tools: posts, timelines, search, users, engagement, following, DMs, bookmarks
-- Added `x mcp` command to start server
-- Created mcp.json configuration file for Claude Desktop
-
-**2025-01-03 (Homebrew Formula):**
-- Created homebrew/x-cli.rb formula template
-- Multi-platform support: macOS ARM64, macOS Intel, Linux x64
-- Created scripts/update-homebrew.sh to update SHA256 hashes after release
-- Updated README.md with Homebrew, npm, and binary installation options
-
-**2025-01-03 (npm Package Preparation):**
-- Scoped package name: @pashask/x-cli
-- Added repository, bugs, homepage fields to package.json
-- Added files field to include only dist/index.js, README.md, LICENSE
-- Created .npmignore to exclude source, tests, docs, and dev files
-- Ready for `npm publish --access public`
-
-**2025-01-03 (Build Optimization):**
-- Enabled minification in all build scripts
-- Compiled binary: ~58MB (includes Bun runtime for self-contained distribution)
-- Node.js bundle: ~324KB (requires Node.js runtime)
-- Note: 10MB target not achievable with self-contained binaries (Bun runtime ~55MB)
-
-**2025-01-03 (Documentation):**
-- Created CONTRIBUTING.md with development setup, code style, PR process
-- Completes Phase 8 documentation
-
-**2025-01-03 (DM with Media):**
-- Added `--media <file>` option to `x dm send`
-- Added `--alt <text>` option for media accessibility
-- Integrated media upload with DM workflow
-- Completes Phase 5: Direct Messages
-
-**2025-01-03 (User Lookup & Search):**
-- Added `--id` option to `x user` for lookup by user ID
-- Added `x user search <query>` command (extracts users from tweet search)
-- Refactored formatUserList to shared output module
-
-**2025-01-03 (Post with Media):**
-- Added `--media <file>` option to `x post create`
-- Added `--alt <text>` option for media accessibility
-- Integrated media upload with post creation workflow
-- Supports images and videos with auto-processing
-
-**2025-01-03 (Claude Integration):**
-- Created Claude Code skill at .claude/skills/x-cli/
-- SKILL.md with complete command reference
-- docs/commands.md with full flag documentation
-- docs/examples.md with real-world usage patterns
-- docs/troubleshooting.md with common issues and fixes
-
-**2025-01-03 (Release & Distribution):**
-- Created GitHub Actions CI workflow (test, build, artifact upload)
-- Created GitHub Actions release workflow (multi-platform binaries)
-- Added CHANGELOG.md with full feature list
-- Created release script (scripts/release.sh)
-- Updated package.json with platform-specific build scripts
-- All 28 tests passing, TypeScript clean
-
-**2025-01-03 (Polish & Release - COMPLETE!):**
-- Implemented interactive REPL mode (`x -i`) with history and tab completion
-- Shell completions for bash, zsh, and fish
-- Configuration system with `x config` commands
-- Settings: default_output, default_limit stored in ~/.config/x-cli/config.json
-
-**2025-01-03 (Grok Integration - COMPLETE!):**
-- Implemented Grok API client (api.x.ai/v1, chat completions)
-- Natural language command parsing with confidence scoring
-- Summarization: threads and user posts with length options
-- Analysis: sentiment, topics, engagement prediction
-- Content generation: drafts with tone, reply suggestions
-- CLI commands: grok, grok summarize, grok analyze, grok draft, grok reply, grok ask
-
-**2025-01-03 (Spaces & Media - COMPLETE!):**
-- Implemented Spaces API client (lookup, search, by creator, buyers)
-- Implemented Media API client (simple upload, chunked upload, status)
-- Created CLI commands for spaces and media management
-
-**Previous Work:**
-- Foundation complete (OAuth 2.0 PKCE, HTTP client, formatters)
-- Posts complete (CRUD, timelines, search)
-- Engagement complete (like, repost, bookmark)
-- Users complete (lookup, follow, block, mute)
-- Lists complete (CRUD, timeline, members, follow, pin)
-- Direct Messages complete (conversations, send, group DM)
+**Verify:** `scrape_linkedin_search` with `type: "people"` returns results with `name`, `headline`, `profileUrl`
 
 ---
 
-## Next Priority
+## Phase 6: Error Handling & Polish (Priority: MEDIUM)
 
-**ALL PHASES COMPLETE!**
+**Spec Reference:** [specs/01-overview.md](specs/01-overview.md) (Error Handling Strategy section)
 
-The x-cli project is fully implemented with:
-- 99 unit tests (99.7% line coverage, 100% function coverage)
-- 12 integration tests (E2E flows, skipped by default)
-- Complete website with demo
-- Full documentation and Claude integration
+### 6.1 Error Handling
+- [ ] Consistent error response format
+- [ ] "Extension not connected" detection
+- [ ] "No pages available" detection
+- [ ] Rate limit detection (Twitter, LinkedIn)
+- [ ] Login wall detection
+- [ ] Element not found graceful handling
 
-Future enhancements could include:
-- Additional Grok AI features
-- Real-time streaming support
-- Plugin system
+**Verify:** All errors return `{ content: [{ type: "text", text: "Error: ..." }], isError: true }`
+
+### 6.2 Rate Limiting
+- [ ] Add configurable delays between requests
+- [ ] Respect platform-specific limits
+- [ ] Exponential backoff on rate limit
+
+**Verify:** Rapid requests to Twitter show delay between actions; rate limit triggers backoff
+
+### 6.3 Logging
+- [ ] Debug logging for development
+- [ ] Error logging to stderr
+- [ ] Configurable log level
+
+**Verify:** `DEBUG=session-scraper:* bun run src/index.ts` shows verbose logs to stderr
+
+---
+
+## Phase 7: Testing (Priority: MEDIUM)
+
+### 7.1 Unit Tests
+- [ ] Number parsing utilities (parseTwitterNumber, etc.)
+- [ ] URL validation
+- [ ] Content cleaning/normalization
+- [ ] Error handling
+
+**Verify:** `bun test` passes with >80% coverage on utility functions
+
+### 7.2 Integration Tests
+- [ ] MCP server starts correctly
+- [ ] Tools are registered
+- [ ] Error responses are well-formed
+
+**Verify:** `bun test:integration` passes (mock Playwriter connection)
+
+### 7.3 Manual Testing
+- [ ] Test with Claude Code
+- [ ] Verify all tools work with live sites
+- [ ] Document any selector changes needed
+
+**Verify:** All tools work in Claude Code with Playwriter extension enabled
+
+---
+
+## Phase 8: Documentation (Priority: LOW)
+
+**Spec Reference:** [specs/06-documentation.md](specs/06-documentation.md)
+
+### 8.1 User Documentation
+- [ ] Getting started guide
+- [ ] Tool reference (all parameters, examples)
+- [ ] Troubleshooting guide
+- [ ] FAQ
+
+**Verify:** `docs/` directory contains all guides; README links to docs
+
+### 8.2 Developer Documentation
+- [ ] Architecture overview
+- [ ] Adding new scrapers guide
+- [ ] Selector maintenance guide
+
+**Verify:** New contributor can add a scraper following the guide
+
+---
+
+## Phase 9: Publishing (Priority: LOW)
+
+**Spec Reference:** [specs/07-publishing.md](specs/07-publishing.md)
+
+### 9.1 npm Publishing
+- [ ] Setup npm publish workflow
+- [ ] Ensure shebang in built output
+- [ ] Test `npx @pep/session-scraper-mcp`
+
+**Verify:** `npx @pep/session-scraper-mcp` starts MCP server without error
+
+### 9.2 Plugin Marketplace
+- [ ] Create plugin repository with manifest
+- [ ] Create marketplace repository
+- [ ] Write skill instructions
+- [ ] Test `/plugin install`
+
+**Verify:** `/plugin install session-scraper` works in Claude Code
+
+### 9.3 CI/CD
+- [ ] CI workflow (test, typecheck, build)
+- [ ] Publish workflow on release
+- [ ] Version management
+
+**Verify:** GitHub Actions pass on PR; release publishes to npm automatically
+
+---
+
+## Implementation Status Summary
+
+| Phase | Status |
+|-------|--------|
+| 1. Foundation | Complete |
+| 2. Browser Tools | Not Started |
+| 3. Generic Scraping | Not Started |
+| 4. Twitter Scraper | Not Started |
+| 5. LinkedIn Scraper | Not Started |
+| 6. Error Handling | Not Started |
+| 7. Testing | Not Started |
+| 8. Documentation | Not Started |
+| 9. Publishing | Not Started |
+| 10. Additional Scrapers | Not Started |
+| 11. Advanced Features | Not Started |
+
+---
+
+## Implementation Notes
+
+### Dependencies
+- `@modelcontextprotocol/sdk` - MCP server framework
+- `playwriter` - CDP relay connection
+- `playwright-core` - Browser automation API
+- `zod` - Schema validation
+
+### Key Architecture Decisions
+1. Use Playwriter extension for browser access (avoids headless detection)
+2. All scraping is DOM-based (no API interception)
+3. Selectors use data-testid attributes where possible for stability
+4. Human-like delays to avoid rate limits
+
+### Selector Stability Notes
+- Twitter: Uses `data-testid` attributes, relatively stable
+- LinkedIn: Uses BEM classes, more stable but still changes
+- Both may need periodic updates as sites evolve
+
+---
+
+## Phase 10: Additional Scrapers (Priority: MEDIUM)
+
+### 10.1 Instagram Scraper
+- [ ] `scrape_instagram_profile` - Get user profile info
+- [ ] `scrape_instagram_posts` - Get user's posts
+- [ ] `scrape_instagram_stories` - Get stories (if accessible)
+
+**Verify:** `scrape_instagram_profile` returns `username`, `displayName`, `followersCount`
+
+### 10.2 Reddit Scraper
+- [ ] `scrape_reddit_user` - Get user profile/posts
+- [ ] `scrape_reddit_subreddit` - Get subreddit posts
+- [ ] `scrape_reddit_post` - Get post + comments
+
+**Verify:** `scrape_reddit_subreddit` for `r/programming` returns posts with `title`, `score`, `comments`
+
+### 10.3 Facebook Scraper
+- [ ] `scrape_facebook_profile` - Get user profile
+- [ ] `scrape_facebook_posts` - Get user's posts
+- [ ] `scrape_facebook_page` - Get page info/posts
+
+**Verify:** `scrape_facebook_page` returns page `name`, `likes`, `posts` array
+
+### 10.4 TikTok Scraper
+- [ ] `scrape_tiktok_profile` - Get user profile
+- [ ] `scrape_tiktok_videos` - Get user's videos
+
+**Verify:** `scrape_tiktok_profile` returns `username`, `displayName`, `followers`, `videos` array
+
+---
+
+## Phase 11: Advanced Features (Priority: LOW)
+
+### 11.1 Action Tools
+- [ ] `twitter_post` - Post a tweet
+- [ ] `twitter_like` - Like a tweet
+- [ ] `twitter_follow` - Follow a user
+- [ ] `linkedin_post` - Create a post
+- [ ] `linkedin_connect` - Send connection request
+
+**Verify:** `twitter_post` creates visible tweet; `twitter_like` shows liked state on tweet
+
+### 11.2 Batch Operations
+- [ ] `batch_scrape_profiles` - Scrape multiple profiles in one call
+- [ ] `batch_scrape_posts` - Scrape posts from multiple users
+
+**Verify:** `batch_scrape_profiles` with 5 usernames returns 5 profile objects
+
+### 11.3 Utilities
+- [ ] Result caching (avoid re-scraping recent data)
+- [ ] Export formats (CSV, JSON file download)
+- [ ] Proxy rotation support
+- [ ] CAPTCHA detection and user notification
+
+**Verify:** Repeated `scrape_twitter_profile` within 5 min returns cached result; CAPTCHA shows user notification

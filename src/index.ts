@@ -1,120 +1,71 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
+
 /**
- * X-CLI - A fast, type-safe CLI for X (Twitter)
+ * Session Scraper MCP Server
  *
- * Entry point for the CLI application.
+ * MCP server that enables AI agents to scrape data from websites using your
+ * existing browser session. Supports Twitter, LinkedIn, and generic pages.
+ *
+ * Uses Playwriter extension to connect to Chrome via CDP relay server.
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
-import {
-  createAuthCommand,
-  createMeCommand,
-  createUserCommand,
-  createPostCommand,
-  createTimelineCommand,
-  createSearchCommand,
-  createLikeCommand,
-  createUnlikeCommand,
-  createRepostCommand,
-  createUnrepostCommand,
-  createBookmarkCommand,
-  createFollowCommand,
-  createUnfollowCommand,
-  createFollowingCommand,
-  createFollowersCommand,
-  createBlockCommand,
-  createUnblockCommand,
-  createBlocksCommand,
-  createMuteCommand,
-  createUnmuteCommand,
-  createMutesCommand,
-  createListCommand,
-  createListsCommand,
-  createDMCommand,
-  createSpaceCommand,
-  createSpacesCommand,
-  createMediaCommand,
-  createGrokCommand,
-  createConfigCommand,
-  createCompletionCommand,
-  startInteractiveMode,
-} from "./cli/index.js";
-import { createMCPCommand } from "./cli/mcp.js";
-import { setOutputOptions } from "./output/index.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { registerTools } from './tools/index.js';
 
-const program = new Command();
+/**
+ * Main entry point for the MCP server
+ */
+async function main() {
+  // Create MCP server instance
+  const server = new Server(
+    {
+      name: 'session-scraper',
+      version: '0.1.0',
+    },
+    {
+      capabilities: {
+        tools: {},
+      },
+    }
+  );
 
-program
-  .name("x")
-  .description("A fast, type-safe CLI for X (Twitter)")
-  .version("0.1.0");
+  // Register all tools with the server
+  registerTools(server);
 
-// Global options (must be defined before subcommands)
-program
-  .option("-j, --json", "Force JSON output")
-  .option("-q, --quiet", "Suppress non-essential output")
-  .option("-v, --verbose", "Debug information")
-  .option("--no-color", "Disable colors")
-  .option("-i, --interactive", "Start interactive REPL mode");
+  // Set up error handling for the server
+  server.onerror = (error) => {
+    console.error('[MCP Error]', error);
+  };
 
-// Hook to process global options before commands run
-program.hook("preAction", (thisCommand) => {
-  const opts = thisCommand.opts();
-
-  // Set global output options
-  setOutputOptions({
-    json: opts.json,
-    quiet: opts.quiet,
-    verbose: opts.verbose,
-    color: opts.color,
+  // Graceful shutdown handling
+  process.on('SIGINT', async () => {
+    console.error('\n[MCP] Shutting down gracefully...');
+    await server.close();
+    process.exit(0);
   });
 
-  // Disable colors if requested
-  if (!opts.color) {
-    chalk.level = 0;
+  process.on('SIGTERM', async () => {
+    console.error('\n[MCP] Shutting down gracefully...');
+    await server.close();
+    process.exit(0);
+  });
+
+  // Create stdio transport and connect
+  const transport = new StdioServerTransport();
+
+  try {
+    await server.connect(transport);
+    console.error('[MCP] Session Scraper server started');
+    console.error('[MCP] Waiting for Playwriter connection...');
+  } catch (error) {
+    console.error('[MCP] Failed to start server:', error);
+    process.exit(1);
   }
-});
-
-// Add commands
-program.addCommand(createAuthCommand());
-program.addCommand(createMeCommand());
-program.addCommand(createUserCommand());
-program.addCommand(createPostCommand());
-program.addCommand(createTimelineCommand());
-program.addCommand(createSearchCommand());
-program.addCommand(createLikeCommand());
-program.addCommand(createUnlikeCommand());
-program.addCommand(createRepostCommand());
-program.addCommand(createUnrepostCommand());
-program.addCommand(createBookmarkCommand());
-program.addCommand(createFollowCommand());
-program.addCommand(createUnfollowCommand());
-program.addCommand(createFollowingCommand());
-program.addCommand(createFollowersCommand());
-program.addCommand(createBlockCommand());
-program.addCommand(createUnblockCommand());
-program.addCommand(createBlocksCommand());
-program.addCommand(createMuteCommand());
-program.addCommand(createUnmuteCommand());
-program.addCommand(createMutesCommand());
-program.addCommand(createListCommand());
-program.addCommand(createListsCommand());
-program.addCommand(createDMCommand());
-program.addCommand(createSpaceCommand());
-program.addCommand(createSpacesCommand());
-program.addCommand(createMediaCommand());
-program.addCommand(createGrokCommand());
-program.addCommand(createConfigCommand());
-program.addCommand(createCompletionCommand());
-program.addCommand(createMCPCommand());
-
-// Handle interactive mode before parsing
-const args = process.argv.slice(2);
-if (args.includes("-i") || args.includes("--interactive")) {
-  // Start interactive mode
-  startInteractiveMode();
-} else {
-  // Parse and execute normally
-  program.parse();
 }
+
+// Run the server
+main().catch((error) => {
+  console.error('[MCP] Fatal error:', error);
+  process.exit(1);
+});

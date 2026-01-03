@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "x-cli": {
-      "command": "x",
-      "args": ["mcp"],
-      "env": {}
-    }
-  }
-}

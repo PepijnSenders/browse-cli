@@ -1,336 +1,134 @@
-<div align="center">
+# Session Scraper MCP
 
-# X CLI
+**MCP server for scraping "uncrawlable" sites using your existing browser session**
 
-**Fast, type-safe CLI for X (Twitter)**
+Scrape Twitter, LinkedIn, and other sites that block traditional scrapers - using your own logged-in browser session.
 
-[![CI](https://github.com/PepijnSenders/x-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/PepijnSenders/x-cli/actions)
-[![License](https://img.shields.io/github/license/PepijnSenders/x-cli)](LICENSE)
+## How It Works
 
-[Installation](#installation) · [Quick Start](#quick-start) · [Commands](#commands)
+```
+Your Chrome Browser (logged into Twitter, LinkedIn, etc.)
+         │
+         ▼
+   Playwriter Extension (enables tab control)
+         │
+         ▼
+   Session Scraper MCP (this project)
+         │
+         ▼
+   Claude Code / AI Agent
+```
 
-</div>
+No API keys. No rate limits. No bot detection. Just your normal browser session.
 
 ## Features
 
-- **Full X API v2** — Posts, timelines, users, lists, DMs, spaces, media, engagement
-- **Grok AI Integration** — Natural language commands, summarization, analysis, drafting
-- **Interactive Mode** — REPL with history and tab completion
-- **Shell Completions** — bash, zsh, fish autocompletions
-- **OAuth 2.0 PKCE** — Secure authentication, no API keys exposed
-- **Type-safe** — Zod validation on all API responses
-- **Beautiful output** — Pretty terminal formatting or JSON for pipes
-- **Rate limit aware** — Automatic retry with exponential backoff
+- **Twitter/X** - Profiles, timelines, posts, search
+- **LinkedIn** - Profiles, posts, people search
+- **Any site** - Generic scraping, screenshots, custom scripts
+- **Your session** - Uses your existing logins, no credentials needed
 
 ## Installation
 
-### Homebrew (macOS/Linux)
+### 1. Install Playwriter Extension
 
-```bash
-brew tap PepijnSenders/x-cli
-brew install x-cli
+[Install from Chrome Web Store](https://chromewebstore.google.com/detail/playwriter-mcp/jfeammnjpkecdekppnclgkkffahnhfhe)
+
+### 2. Add to MCP Client
+
+Add to your Claude Code or MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "session-scraper": {
+      "command": "npx",
+      "args": ["@pep/session-scraper-mcp"]
+    }
+  }
+}
 ```
 
-### npm
+### 3. Enable on Tabs
 
-```bash
-npm install -g @pepijnsenders/x-cli
+Click the Playwriter extension icon on tabs you want to control (icon turns green).
+
+## Tools
+
+### Twitter/X
+
+| Tool | Description |
+|------|-------------|
+| `scrape_twitter_profile` | Get user profile info |
+| `scrape_twitter_timeline` | Get tweets from user/home |
+| `scrape_twitter_post` | Get single tweet + thread |
+| `scrape_twitter_search` | Search tweets |
+
+### LinkedIn
+
+| Tool | Description |
+|------|-------------|
+| `scrape_linkedin_profile` | Get profile info |
+| `scrape_linkedin_posts` | Get user's posts |
+| `scrape_linkedin_search` | Search people/companies |
+
+### Browser
+
+| Tool | Description |
+|------|-------------|
+| `navigate` | Go to URL |
+| `take_screenshot` | Screenshot page |
+| `get_page_info` | Get current URL/title |
+| `list_pages` | List controlled tabs |
+| `switch_page` | Switch active tab |
+
+### Generic
+
+| Tool | Description |
+|------|-------------|
+| `scrape_page` | Extract text/links/images |
+| `execute_script` | Run custom JavaScript |
+
+## Example Usage
+
+```
+You: Scrape Elon Musk's Twitter profile
+
+Claude: [Uses scrape_twitter_profile with username "elonmusk"]
+
+Result:
+{
+  "username": "elonmusk",
+  "displayName": "Elon Musk",
+  "bio": "Mars & Cars, Chips & Dips",
+  "followersCount": 170500000,
+  "followingCount": 512,
+  ...
+}
 ```
 
-### Binary Download
+## Requirements
 
-Download pre-built binaries from [Releases](https://github.com/PepijnSenders/x-cli/releases):
-- `x-cli-darwin-arm64.tar.gz` — macOS Apple Silicon
-- `x-cli-darwin-x64.tar.gz` — macOS Intel
-- `x-cli-linux-x64.tar.gz` — Linux x64
-- `x-cli-win-x64.zip` — Windows x64
+- Chrome browser
+- [Playwriter extension](https://chromewebstore.google.com/detail/playwriter-mcp/jfeammnjpkecdekppnclgkkffahnhfhe)
+- Logged into the sites you want to scrape
 
-### From Source
+## Specs
 
-```bash
-git clone https://github.com/PepijnSenders/x-cli
-cd x-cli
-bun install
-bun run build
-```
+See `/specs` for detailed specifications:
 
-### Run directly
-
-```bash
-bun run src/index.ts <command>
-```
-
-## Quick Start
-
-```bash
-# Authenticate
-x auth login
-
-# Post something
-x post create "Hello, X!"
-
-# View your timeline
-x timeline home
-
-# Search posts
-x search "from:elonmusk AI"
-
-# Get user info
-x user elonmusk
-```
-
-## Commands
-
-<details>
-<summary><strong>Authentication</strong></summary>
-
-```bash
-x auth login          # Start OAuth flow
-x auth logout         # Clear credentials
-x auth status         # Show current user
-x auth refresh        # Refresh token
-```
-
-</details>
-
-<details>
-<summary><strong>Posts</strong></summary>
-
-```bash
-x post create <text>           # Create a post
-x post get <id>                # Get post by ID
-x post delete <id>             # Delete your post
-x post reply <id> <text>       # Reply to a post
-x post quote <id> <text>       # Quote a post
-```
-
-</details>
-
-<details>
-<summary><strong>Timelines</strong></summary>
-
-```bash
-x timeline home                # Home timeline
-x timeline user <username>     # User's posts
-x timeline mentions            # Your mentions
-x timeline --limit 50          # Custom limit
-```
-
-</details>
-
-<details>
-<summary><strong>Search</strong></summary>
-
-```bash
-x search <query>               # Search posts
-x search "from:user keyword"   # Advanced search
-x search --limit 20            # Limit results
-```
-
-</details>
-
-<details>
-<summary><strong>Engagement</strong></summary>
-
-```bash
-x like <id>                    # Like a post
-x unlike <id>                  # Unlike
-x repost <id>                  # Repost
-x unrepost <id>                # Remove repost
-x bookmark add <id>            # Bookmark
-x bookmark list                # View bookmarks
-x bookmark remove <id>         # Remove bookmark
-```
-
-</details>
-
-<details>
-<summary><strong>Users</strong></summary>
-
-```bash
-x me                           # Your profile
-x user <username>              # User lookup
-x follow <username>            # Follow user
-x unfollow <username>          # Unfollow
-x followers [username]         # List followers
-x following [username]         # List following
-x block <username>             # Block user
-x unblock <username>           # Unblock user
-x blocks                       # List blocked
-x mute <username>              # Mute user
-x unmute <username>            # Unmute user
-x mutes                        # List muted
-```
-
-</details>
-
-<details>
-<summary><strong>Lists</strong></summary>
-
-```bash
-x list create <name>           # Create list
-x list get <id>                # List info
-x list update <id>             # Update list
-x list delete <id>             # Delete list
-x list timeline <id>           # List timeline
-x list members <id>            # List members
-x list add <id> <user>         # Add member
-x list remove <id> <user>      # Remove member
-x list follow <id>             # Follow list
-x list unfollow <id>           # Unfollow list
-x list pin <id>                # Pin list
-x list unpin <id>              # Unpin list
-x lists                        # Your lists
-x lists owned                  # Lists you own
-x lists followed               # Lists you follow
-x lists pinned                 # Pinned lists
-```
-
-</details>
-
-<details>
-<summary><strong>Direct Messages</strong></summary>
-
-```bash
-x dm list                      # List conversations
-x dm view <username>           # View conversation with user
-x dm conversation <id>         # View by conversation ID
-x dm send <username> <text>    # Send a DM
-x dm group -u user1 -u user2 <text>  # Create group DM
-x dm delete <event_id>         # Delete a message
-```
-
-</details>
-
-<details>
-<summary><strong>Spaces</strong></summary>
-
-```bash
-x space get <id>               # Get space details
-x space search <query>         # Search spaces
-x space search --state live    # Filter by state
-x space buyers <id>            # Get ticketed space buyers
-x spaces <username>            # User's spaces
-```
-
-</details>
-
-<details>
-<summary><strong>Media</strong></summary>
-
-```bash
-x media upload <file>          # Upload media file
-x media upload <file> --alt "description"  # With alt text
-x media upload <file> --wait   # Wait for processing
-x media status <id>            # Check processing status
-x media wait <id>              # Wait for processing complete
-```
-
-</details>
-
-<details>
-<summary><strong>Grok AI</strong></summary>
-
-```bash
-x grok "show my last 5 posts"  # Natural language parsing
-x grok summarize <post_id>     # Summarize a thread
-x grok summarize @username     # Summarize user's posts
-x grok analyze <post_id>       # Sentiment & topic analysis
-x grok draft "topic"           # Draft a post
-x grok draft "topic" --tone professional  # With tone
-x grok reply <post_id>         # Suggest replies
-x grok ask "question"          # Ask about your timeline
-```
-
-Requires `XAI_API_KEY` environment variable.
-
-</details>
-
-<details>
-<summary><strong>Configuration</strong></summary>
-
-```bash
-x config get <key>             # Get config value
-x config set <key> <value>     # Set config value
-x config list                  # List all config
-x config reset                 # Reset to defaults
-```
-
-Available settings: `default_output` (json/pretty), `default_limit` (1-100)
-
-</details>
-
-<details>
-<summary><strong>Shell Completions</strong></summary>
-
-```bash
-x completion bash              # Generate bash completions
-x completion zsh               # Generate zsh completions
-x completion fish              # Generate fish completions
-
-# Install completions
-eval "$(x completion bash)"    # Add to .bashrc
-```
-
-</details>
-
-<details>
-<summary><strong>Interactive Mode</strong></summary>
-
-```bash
-x -i                           # Start interactive REPL
-x --interactive                # Same as above
-
-# In REPL:
-x> timeline home
-x> post create "Hello!"
-x> help
-x> exit
-```
-
-</details>
-
-## Global Options
-
-```bash
--j, --json       Force JSON output
--q, --quiet      Suppress non-essential output
--v, --verbose    Debug information
--i, --interactive  Start interactive REPL mode
---no-color       Disable colors
-```
-
-## Configuration
-
-Tokens are stored securely at `~/.config/x-cli/tokens.json` with AES-256-GCM encryption.
+- [Overview & Architecture](specs/01-overview.md)
+- [MCP Tools](specs/02-mcp-tools.md)
+- [Twitter Scraper](specs/03-twitter-scraper.md)
+- [LinkedIn Scraper](specs/04-linkedin-scraper.md)
+- [Generic Scraper](specs/05-generic-scraper.md)
 
 ## Development
 
 ```bash
-# Install dependencies
 bun install
-
-# Run development
-bun run src/index.ts <command>
-
-# Type check
-bun run typecheck
-
-# Test
-bun test
-
-# Build
-bun run build
+bun run dev
 ```
-
-## Tech Stack
-
-- **Runtime**: [Bun](https://bun.sh)
-- **Language**: TypeScript
-- **CLI Framework**: [Commander.js](https://github.com/tj/commander.js)
-- **Validation**: [Zod](https://zod.dev)
-- **OAuth**: [Arctic](https://arcticjs.dev)
-- **Terminal**: [Chalk](https://github.com/chalk/chalk), [Ora](https://github.com/sindresorhus/ora), [cli-table3](https://github.com/cli-table/cli-table3)
 
 ## License
 

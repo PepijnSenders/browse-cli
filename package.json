@@ -1,11 +1,11 @@
 {
-  "name": "@pepijnsenders/x-cli",
+  "name": "@pep/session-scraper-mcp",
   "version": "0.1.0",
-  "description": "A fast, type-safe CLI for X (Twitter)",
+  "description": "MCP server for scraping sites using your existing browser session (Twitter, LinkedIn, etc.)",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "x": "./dist/index.js"
+    "session-scraper": "./dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -16,33 +16,22 @@
   },
   "homepage": "https://github.com/PepijnSenders/x-cli#readme",
   "files": [
-    "dist/index.js",
+    "dist",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --compile --minify --outfile dist/x",
-    "build:node": "bun build src/index.ts --outdir dist --target node --minify",
-    "build:linux": "bun build src/index.ts --compile --minify --target=bun-linux-x64 --outfile dist/x",
-    "build:darwin": "bun build src/index.ts --compile --minify --target=bun-darwin-arm64 --outfile dist/x",
-    "build:darwin-x64": "bun build src/index.ts --compile --minify --target=bun-darwin-x64 --outfile dist/x",
-    "build:win": "bun build src/index.ts --compile --minify --target=bun-windows-x64 --outfile dist/x.exe",
+    "build": "bun build src/index.ts --outdir dist --target node --minify",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "test:coverage": "bun test --coverage",
     "lint": "bunx 0xc .",
-    "format": "bunx 0xc --fix .",
-    "release": "./scripts/release.sh"
+    "format": "bunx 0xc --fix ."
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1",
-    "arctic": "^3.5.0",
-    "chalk": "^5.4.1",
-    "cli-table3": "^0.6.5",
-    "commander": "^13.1.0",
-    "open": "^10.1.0",
-    "ora": "^8.2.0",
+    "playwriter": "^0.0.34",
+    "playwright-core": "^1.49.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -55,9 +44,13 @@
   "author": "PepijnSenders",
   "license": "MIT",
   "keywords": [
+    "mcp",
+    "scraper",
     "twitter",
-    "x",
-    "cli",
-    "api"
+    "linkedin",
+    "browser",
+    "session",
+    "playwright",
+    "playwriter"
   ]
 }
