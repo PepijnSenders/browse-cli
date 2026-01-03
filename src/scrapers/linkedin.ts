@@ -15,9 +15,18 @@ import type {
   PlatformErrorType
 } from '../types.js';
 import { parseTwitterNumber, cleanText } from '../utils/index.js';
+import {
+  humanDelay as commonHumanDelay,
+  scrollForMore as commonScrollForMore,
+  waitForElement as commonWaitForElement
+} from './common.js';
 
 // Re-export parseLinkedInDuration for convenience
 export { parseTwitterNumber };
+
+// Re-export common utilities for backwards compatibility
+export const humanDelay = commonHumanDelay;
+export const waitForElement = commonWaitForElement;
 
 // ============================================================================
 // Constants & Configuration
@@ -160,71 +169,6 @@ export async function checkLinkedInErrors(page: Page): Promise<PlatformErrorType
   }
 
   return null;
-}
-
-/**
- * Human-like delay between actions to avoid rate limiting
- *
- * @param min - Minimum delay in milliseconds
- * @param max - Maximum delay in milliseconds
- */
-export async function humanDelay(min = 500, max = 1500): Promise<void> {
-  const delay = min + Math.random() * (max - min);
-  await new Promise(resolve => setTimeout(resolve, delay));
-}
-
-/**
- * Scroll page to load more content.
- * Returns true if new content was loaded.
- *
- * @param page - Playwright page instance
- * @param maxAttempts - Maximum scroll attempts without new content
- * @returns True if new content was loaded
- */
-export async function scrollForMore(page: Page, maxAttempts = 3): Promise<boolean> {
-  let attempts = 0;
-  let previousHeight = await page.evaluate(() => document.body.scrollHeight);
-
-  while (attempts < maxAttempts) {
-    // Scroll to bottom
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-
-    // Wait for content to load
-    await page.waitForTimeout(RATE_LIMITS.scrollDelay);
-
-    // Check if height changed
-    const newHeight = await page.evaluate(() => document.body.scrollHeight);
-    if (newHeight > previousHeight) {
-      previousHeight = newHeight; // Update for next iteration
-      attempts = 0; // Reset attempts counter on success
-      return true;
-    }
-
-    attempts++;
-  }
-
-  return false;
-}
-
-/**
- * Wait for element with timeout
- *
- * @param page - Playwright page instance
- * @param selector - CSS selector to wait for
- * @param timeout - Timeout in milliseconds
- * @returns Whether element was found
- */
-export async function waitForElement(
-  page: Page,
-  selector: string,
-  timeout = 10000
-): Promise<boolean> {
-  try {
-    await page.waitForSelector(selector, { timeout });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 // ============================================================================
@@ -538,8 +482,8 @@ export async function extractPosts(page: Page, count = 20): Promise<LinkedInPost
       break;
     }
 
-    // Try to scroll for more
-    const hasMore = await scrollForMore(page);
+    // Try to scroll for more (LinkedIn needs longer delay)
+    const hasMore = await commonScrollForMore(page, 3, RATE_LIMITS.scrollDelay);
     if (!hasMore) {
       attempts++;
     } else {
@@ -663,8 +607,8 @@ export async function extractSearchResults(
       break;
     }
 
-    // Try to scroll for more
-    const hasMore = await scrollForMore(page);
+    // Try to scroll for more (LinkedIn needs longer delay)
+    const hasMore = await commonScrollForMore(page, 3, RATE_LIMITS.scrollDelay);
     if (!hasMore) {
       attempts++;
     } else {

@@ -74,6 +74,8 @@ export interface TwitterMedia {
   type: 'photo' | 'video' | 'gif';
   /** URL to media */
   url: string;
+  /** Thumbnail URL for videos */
+  thumbnailUrl?: string;
   /** Alt text if available */
   alt?: string;
 }
@@ -81,7 +83,7 @@ export interface TwitterMedia {
 /**
  * Tweet type classification
  */
-export type TwitterTweetType = 'original' | 'retweet' | 'reply';
+export type TwitterTweetType = 'original' | 'retweet' | 'reply' | 'thread';
 
 /**
  * Individual tweet data

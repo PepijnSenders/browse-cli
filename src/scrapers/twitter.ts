@@ -16,9 +16,17 @@ import type {
   TwitterTimeline
 } from '../types.js';
 import { parseTwitterNumber, cleanText } from '../utils/index.js';
+import {
+  humanDelay as commonHumanDelay,
+  waitForElement as commonWaitForElement
+} from './common.js';
 
 // Re-export parseTwitterNumber for convenience as per spec
 export { parseTwitterNumber };
+
+// Re-export common utilities for backwards compatibility
+export const humanDelay = commonHumanDelay;
+export const waitForElement = commonWaitForElement;
 
 // ============================================================================
 // Constants & Configuration
@@ -78,13 +86,63 @@ export const RATE_LIMITS = {
 // ============================================================================
 
 /**
+ * Detect if a tweet is part of a thread based on text patterns and DOM indicators
+ *
+ * @param text - Tweet text content
+ * @param article - Tweet article element
+ * @returns True if tweet is part of a thread
+ */
+export function detectThreadIndicators(text: string, article: Element): boolean {
+  // Check for common thread numbering patterns
+  const threadPatterns = [
+    /^\d+[/\.]\d+/,           // "1/5", "1.5", "2/10"
+    /^\d+\/\s/,               // "1/ " (number, slash, space)
+    /^\(\d+[/\.]\d+\)/,       // "(1/5)", "(2.3)"
+    /thread:/i,               // "Thread:", "THREAD:"
+    /🧵/,                     // Thread emoji
+  ];
+
+  for (const pattern of threadPatterns) {
+    if (pattern.test(text.trim())) {
+      return true;
+    }
+  }
+
+  // Check for "Show this thread" link which indicates thread context
+  const showThreadLink = article.querySelector('a[href*="/status/"][role="link"]');
+  if (showThreadLink?.textContent?.toLowerCase().includes('show this thread')) {
+    return true;
+  }
+
+  // Check for thread indicator card
+  const threadCard = article.querySelector('[data-testid="card.layoutLarge.detail"]');
+  if (threadCard) {
+    return true;
+  }
+
+  // Check for "Show more" in the same tweet (self-thread continuation)
+  const showMoreButton = article.querySelector('[data-testid="tweet"] [role="button"]');
+  if (showMoreButton?.textContent?.toLowerCase().includes('show more')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Detect tweet type based on DOM indicators
  *
  * @param article - Tweet article element
+ * @param text - Tweet text content (for thread detection)
+ * @param authorUsername - Author's username (for self-reply detection)
  * @returns Tweet type classification
  */
-export function detectTweetType(article: Element): TwitterTweetType {
-  // Check for retweet indicator
+export function detectTweetType(
+  article: Element,
+  text: string = '',
+  authorUsername: string = ''
+): TwitterTweetType {
+  // Check for retweet indicator (highest priority)
   const socialContext = article.querySelector(SELECTORS.tweet.socialContext);
   if (socialContext?.textContent?.includes('reposted')) {
     return 'retweet';
@@ -92,12 +150,39 @@ export function detectTweetType(article: Element): TwitterTweetType {
 
   // Check for reply indicator
   const tweetContent = article.querySelector('[data-testid="tweet"]');
-  if (tweetContent?.textContent?.includes('Replying to')) {
+  const isReply = tweetContent?.textContent?.includes('Replying to');
+
+  if (isReply) {
+    // Check if it's a self-reply (thread continuation) vs reply to someone else
+    const replyingToText = tweetContent?.textContent || '';
+    const replyingToMatch = replyingToText.match(/Replying to @(\w+)/);
+
+    if (replyingToMatch) {
+      const replyingToUsername = replyingToMatch[1];
+
+      // If replying to self AND has thread indicators, it's a thread
+      if (replyingToUsername === authorUsername && detectThreadIndicators(text, article)) {
+        return 'thread';
+      }
+
+      // If replying to self but no explicit thread indicators, still mark as thread
+      if (replyingToUsername === authorUsername) {
+        return 'thread';
+      }
+    }
+
+    // Reply to someone else
     return 'reply';
+  }
+
+  // Check for thread indicators on original tweets
+  if (detectThreadIndicators(text, article)) {
+    return 'thread';
   }
 
   return 'original';
 }
+
 
 /**
  * Check for Twitter-specific error states
@@ -144,27 +229,6 @@ export async function checkTwitterErrors(page: Page): Promise<PlatformErrorType 
   }
 
   return null;
-}
-
-/**
- * Wait for element with timeout
- *
- * @param page - Playwright page instance
- * @param selector - CSS selector to wait for
- * @param timeout - Timeout in milliseconds
- * @returns Whether element was found
- */
-export async function waitForElement(
-  page: Page,
-  selector: string,
-  timeout = 10000
-): Promise<boolean> {
-  try {
-    await page.waitForSelector(selector, { timeout });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 // ============================================================================
@@ -332,18 +396,26 @@ export async function navigateToProfile(
 }
 
 /**
- * Scroll page to load more tweets.
- * Returns true if new content was loaded.
+ * Scroll page to load more tweets with verification of new content.
+ * Returns true if new content was loaded (verified by tweet count increase).
  *
  * @param page - Playwright page instance
  * @param maxAttempts - Maximum scroll attempts without new content
- * @returns True if new content was loaded
+ * @returns True if new tweets were loaded (at least 1 new tweet on page)
  */
-export async function scrollForMore(page: Page, maxAttempts = 3): Promise<boolean> {
+export async function scrollForMore(
+  page: Page,
+  maxAttempts = 3
+): Promise<boolean> {
   let attempts = 0;
   let previousHeight = await page.evaluate(() => document.body.scrollHeight);
 
   while (attempts < maxAttempts) {
+    // Get current tweet count on page before scrolling
+    const tweetCountBefore = await page.evaluate(() => {
+      return document.querySelectorAll('article[data-testid="tweet"]').length;
+    });
+
     // Scroll to bottom
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
@@ -352,10 +424,22 @@ export async function scrollForMore(page: Page, maxAttempts = 3): Promise<boolea
 
     // Check if height changed
     const newHeight = await page.evaluate(() => document.body.scrollHeight);
-    if (newHeight > previousHeight) {
-      previousHeight = newHeight; // Update for next iteration
-      attempts = 0; // Reset attempts counter on success
+
+    // Get tweet count after scroll
+    const tweetCountAfter = await page.evaluate(() => {
+      return document.querySelectorAll('article[data-testid="tweet"]').length;
+    });
+
+    // Success if:
+    // 1. Height changed (content loaded), AND
+    // 2. At least 1 new tweet appeared on the page
+    if (newHeight > previousHeight && tweetCountAfter > tweetCountBefore) {
       return true;
+    }
+
+    // If height changed but no new tweets, update height and continue
+    if (newHeight > previousHeight) {
+      previousHeight = newHeight;
     }
 
     attempts++;
@@ -473,10 +557,10 @@ export async function extractTweets(page: Page): Promise<TwitterTweet[]> {
         // Check for reply indicator
         else if (article.textContent?.includes('Replying to')) {
           type = 'reply';
-        }
+        }        // Extract media
+        const media: Array<{ type: 'photo' | 'video' | 'gif'; url: string; thumbnailUrl?: string; alt?: string }> = [];
 
-        // Extract media
-        const media: Array<{ type: 'photo' | 'video' | 'gif'; url: string; alt?: string }> = [];
+        // Extract photos
         const photoEls = article.querySelectorAll('[data-testid="tweetPhoto"] img');
         for (const img of photoEls) {
           const imgEl = img as HTMLImageElement;
@@ -485,6 +569,32 @@ export async function extractTweets(page: Page): Promise<TwitterTweet[]> {
               type: 'photo',
               url: imgEl.src,
               alt: imgEl.alt
+            });
+          }
+        }
+
+        // Extract videos and GIFs
+        const videoPlayers = article.querySelectorAll('[data-testid="videoPlayer"], [data-testid="videoComponent"]');
+        for (const player of videoPlayers) {
+          // Try to get video thumbnail from poster image
+          const posterImg = player.querySelector('img') as HTMLImageElement | null;
+          const videoEl = player.querySelector('video') as HTMLVideoElement | null;
+
+          // Determine if it's a GIF (typically has autoplay, loop, and muted attributes)
+          const isGif = videoEl?.hasAttribute('autoplay') &&
+                       videoEl?.hasAttribute('loop') &&
+                       videoEl?.hasAttribute('muted');
+
+          // Get video URL from video element or fallback to thumbnail
+          const videoUrl = videoEl?.src || videoEl?.querySelector('source')?.src || '';
+          const thumbnailUrl = posterImg?.src || videoEl?.poster || '';
+
+          if (videoUrl || thumbnailUrl) {
+            media.push({
+              type: isGif ? 'gif' : 'video',
+              url: videoUrl || thumbnailUrl,
+              thumbnailUrl: thumbnailUrl || undefined,
+              alt: posterImg?.alt
             });
           }
         }
@@ -544,6 +654,9 @@ export async function extractSearchResults(
 
   // Extract tweets and scroll until we have enough
   while (tweets.length < count && attempts < maxAttempts) {
+    // Track previous count to detect if we got new tweets
+    const previousCount = tweets.length;
+
     // Extract current tweets
     const currentTweets = await extractTweets(page);
 
@@ -560,10 +673,16 @@ export async function extractSearchResults(
       break;
     }
 
+    // Check if we got new tweets
+    const gotNewTweets = tweets.length > previousCount;
+
     // Try to scroll for more
-    const hasMore = await scrollForMore(page);
+    const hasMore = await scrollForMore(page, 3);
     if (!hasMore) {
-      attempts++;
+      // If no scroll success AND no new tweets, increment attempts
+      if (!gotNewTweets) {
+        attempts++;
+      }
     } else {
       attempts = 0; // Reset on successful scroll
     }
@@ -580,19 +699,8 @@ export async function extractSearchResults(
 }
 
 /**
- * Human-like delay between actions to avoid rate limiting.
- *
- * @param min - Minimum delay in milliseconds
- * @param max - Maximum delay in milliseconds
- */
-export async function humanDelay(min = 500, max = 1500): Promise<void> {
-  const delay = min + Math.random() * (max - min);
-  await new Promise(resolve => setTimeout(resolve, delay));
-}
-
-/**
  * Collect tweets from timeline until target count is reached.
- * Handles pagination via infinite scroll.
+ * Handles pagination via infinite scroll with proper deduplication.
  *
  * @param page - Playwright page instance (should already be on timeline)
  * @param targetCount - Number of tweets to collect (max 100)
@@ -608,6 +716,7 @@ export async function collectTimelineTweets(
   const seenIds = new Set<string>();
   let scrollAttempts = 0;
   let hasMore = true;
+  let consecutiveFailedScrolls = 0;
 
   // Wait for initial tweets to load
   try {
@@ -617,6 +726,9 @@ export async function collectTimelineTweets(
   }
 
   while (tweets.length < targetCount && scrollAttempts < maxScrollAttempts) {
+    // Track how many tweets we had before extracting
+    const previousTweetCount = tweets.length;
+
     // Extract tweets from current view
     const newTweets = await extractTweets(page);
 
@@ -637,13 +749,30 @@ export async function collectTimelineTweets(
       break;
     }
 
+    // Check if we actually got new tweets this iteration
+    const gotNewTweets = tweets.length > previousTweetCount;
+
     // Try to scroll for more
     const scrolledMore = await scrollForMore(page, 3);
 
     if (!scrolledMore) {
-      // No more content loaded
-      hasMore = false;
-      break;
+      consecutiveFailedScrolls++;
+
+      // If scroll failed AND we didn't get new tweets, we're likely at the end
+      if (!gotNewTweets) {
+        hasMore = false;
+        break;
+      }
+
+      // Allow a few failed scrolls if we're still getting new tweets from the page
+      // (Sometimes tweets load without scroll, or duplicates filter out)
+      if (consecutiveFailedScrolls >= 3) {
+        hasMore = false;
+        break;
+      }
+    } else {
+      // Reset counter on successful scroll
+      consecutiveFailedScrolls = 0;
     }
 
     scrollAttempts++;

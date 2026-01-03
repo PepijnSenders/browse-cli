@@ -6,6 +6,93 @@ let currentPageIndex = 0;
 
 const PLAYWRITER_HOST = process.env.PLAYWRITER_HOST || '127.0.0.1';
 const PLAYWRITER_PORT = process.env.PLAYWRITER_PORT || '19988';
+const CONNECTION_TIMEOUT = 30000; // 30 seconds
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 100; // ms
+
+/**
+ * Helper function to retry an async operation with exponential backoff
+ * @param fn The async function to retry
+ * @param maxRetries Maximum number of retry attempts
+ * @param initialDelay Initial delay in milliseconds (doubles each retry)
+ * @param shouldRetry Optional function to determine if error is retryable
+ * @returns The result of the function call
+ */
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = MAX_RETRIES,
+  initialDelay: number = INITIAL_RETRY_DELAY,
+  shouldRetry?: (error: Error) => boolean
+): Promise<T> {
+  let lastError: Error;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Check if we should retry this error
+      if (shouldRetry && !shouldRetry(lastError)) {
+        throw lastError;
+      }
+
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries - 1) {
+        throw lastError;
+      }
+
+      // Calculate exponential backoff delay
+      const delay = initialDelay * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError!;
+}
+
+/**
+ * Determines if an error is a connection refused error that should be retried
+ */
+function isConnectionRefusedError(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  return message.includes('econnrefused') ||
+         message.includes('connection refused') ||
+         message.includes('connect econnrefused');
+}
+
+/**
+ * Determines if an error is a timeout error
+ */
+function isTimeoutError(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  return message.includes('timeout') || message.includes('timed out');
+}
+
+/**
+ * Wraps a promise with a timeout
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutMessage: string
+): Promise<T> {
+  let timeoutId: Timer | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
 
 export async function connect(): Promise<Browser> {
   if (browser?.isConnected()) {
@@ -15,12 +102,41 @@ export async function connect(): Promise<Browser> {
   const wsEndpoint = `ws://${PLAYWRITER_HOST}:${PLAYWRITER_PORT}`;
 
   try {
-    browser = await chromium.connectOverCDP(wsEndpoint);
+    // Try to connect with timeout and retry logic
+    browser = await withRetry(
+      async () => {
+        return await withTimeout(
+          chromium.connectOverCDP(wsEndpoint),
+          CONNECTION_TIMEOUT,
+          `Connection timeout after ${CONNECTION_TIMEOUT}ms. The Playwriter extension may not be responding.`
+        );
+      },
+      MAX_RETRIES,
+      INITIAL_RETRY_DELAY,
+      isConnectionRefusedError
+    );
+
     return browser;
   } catch (error) {
-    if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
-      throw new Error('Extension not connected. Click the Playwriter extension icon in Chrome.');
+    if (error instanceof Error) {
+      // Connection refused after retries
+      if (isConnectionRefusedError(error)) {
+        throw new Error(
+          'Extension not connected. Click the Playwriter extension icon in Chrome to enable browser control.\n' +
+          `Tried to connect ${MAX_RETRIES} times to ${wsEndpoint}.`
+        );
+      }
+
+      // Timeout error
+      if (isTimeoutError(error)) {
+        throw new Error(
+          `Connection timeout after ${CONNECTION_TIMEOUT}ms. The Playwriter extension may not be responding.\n` +
+          'Make sure Chrome is running and the Playwriter extension is active.'
+        );
+      }
     }
+
+    // Re-throw other errors as-is
     throw error;
   }
 }
