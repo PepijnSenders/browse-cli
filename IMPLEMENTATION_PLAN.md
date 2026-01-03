@@ -152,12 +152,12 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 **Spec**: [specs/03-skill-definition.md](specs/03-skill-definition.md)
 
 ### 7.1 Create Skill
-- [ ] Write `skill/scrape.md`
-- [ ] Document all CLI commands
-- [ ] Add interpretation examples
-- [ ] Add error handling guidance
+- [x] Write `skill/scrape.md`
+- [x] Document all CLI commands
+- [x] Add interpretation examples
+- [x] Add error handling guidance
 
-**Verify**: Skill file is complete and accurate
+**Verify**: Skill file is complete and accurate ✓
 
 ### 7.2 Test with Claude Code
 - [ ] Load skill locally
@@ -223,7 +223,7 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 | 4. Twitter Scraper | ✓ Completed |
 | 5. LinkedIn Scraper | ✓ Completed |
 | 6. Error Handling | ✓ Completed |
-| 7. Skill Definition | Not Started |
+| 7. Skill Definition | ✓ Completed (7.1) |
 | 8. Testing | Not Started |
 | 9. Publishing | Not Started |
 
