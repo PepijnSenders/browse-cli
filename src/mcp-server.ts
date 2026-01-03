@@ -12,7 +12,9 @@ import {
   collectTimelineTweets,
   navigateToTweet,
   extractPost as extractTwitterPost,
-  extractSearchResults as extractTwitterSearchResults
+  extractSearchResults as extractTwitterSearchResults,
+  navigateToList,
+  extractListTimeline
 } from './scrapers/twitter.js';
 import {
   navigateToProfile as navigateToLinkedInProfile,
@@ -226,6 +228,56 @@ async function main() {
           tweets: searchResults.tweets,
           count: searchResults.tweets.length,
           hasMore: searchResults.hasMore
+        };
+      });
+      return formatResult(result);
+    } catch (error) {
+      return formatError(error);
+    }
+  });
+
+  server.registerTool('scrape_twitter_list', {
+    description: 'Get Twitter List information and tweets from list members. Lists are curated collections of Twitter accounts.',
+    inputSchema: {
+      listId: z.string().describe('Twitter List ID (from URL: x.com/i/lists/{id})'),
+      count: z.number().optional().describe('Number of tweets to fetch (default: 20, max: 100)')
+    }
+  }, async ({ listId, count = 20 }) => {
+    try {
+      const result = await withBrowser(async () => {
+        const page = await getPage();
+
+        // Navigate to list
+        await navigateToList(page, listId);
+        await page.waitForTimeout(2000);
+
+        // Check for errors
+        const content = await page.content();
+        const error = checkTwitterErrors(content);
+
+        if (error) {
+          switch (error) {
+            case 'not_found':
+              throw new Error(`Twitter List ${listId} not found`);
+            case 'private_account':
+              throw new Error('This list is private');
+            case 'login_required':
+              throw new Error('Login to Twitter required to view this list');
+            case 'rate_limited':
+              throw new Error('Rate limited by Twitter. Please wait before trying again.');
+            default:
+              throw new Error(`Twitter error: ${error}`);
+          }
+        }
+
+        // Extract list timeline
+        const timeline = await extractListTimeline(page, count);
+
+        return {
+          list: timeline.list,
+          tweets: timeline.tweets,
+          count: timeline.tweets.length,
+          hasMore: timeline.hasMore
         };
       });
       return formatResult(result);

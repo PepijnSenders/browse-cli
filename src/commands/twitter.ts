@@ -4,7 +4,7 @@
 
 import type { GlobalOptions, CountOptions, TwitterTweet, TwitterMetrics } from '../types.js';
 import { getPage } from '../browser.js';
-import { navigateToProfile, extractProfile, extractSearchResults, humanDelay, collectTimelineTweets } from '../scrapers/twitter.js';
+import { navigateToProfile, extractProfile, extractSearchResults, humanDelay, collectTimelineTweets, navigateToList, extractListTimeline } from '../scrapers/twitter.js';
 import { checkTwitterErrors, formatError, throwScraperError } from '../utils/index.js';
 
 /**
@@ -402,3 +402,81 @@ export async function search(
     process.exit(structured.code);
   }
 }
+
+
+/**
+ * Get Twitter List information and timeline
+ */
+export async function getList(
+  listId: string,
+  options: GlobalOptions & Partial<CountOptions>
+): Promise<void> {
+  try {
+    const page = await getPage();
+
+    // Navigate to the list
+    await navigateToList(page, listId, options.timeout);
+
+    // Wait for content to load
+    await page.waitForTimeout(2000);
+
+    // Check for errors
+    const content = await page.content();
+    const error = checkTwitterErrors(content);
+
+    if (error) {
+      switch (error) {
+        case "not_found":
+          throwScraperError("not_found", `Twitter List ${listId} not found`);
+          break;
+        case "private_account":
+          throwScraperError("private_account", "This list is private");
+          break;
+        case "login_required":
+          throwScraperError("login_required", "Login to Twitter to view this list");
+          break;
+        case "rate_limited":
+          throwScraperError("rate_limited", "Rate limited by Twitter");
+          break;
+        default:
+          throw new Error(`Error: ${error}`);
+      }
+    }
+
+    // Extract list timeline
+    const count = options.count || 20;
+    const timeline = await extractListTimeline(page, count);
+
+    // Output based on format
+    if (options.format === "json") {
+      console.log(JSON.stringify(timeline, null, 2));
+    } else {
+      // Text format
+      const { list, tweets } = timeline;
+      console.log(`\n📋 ${list.name}`);
+      if (list.description) {
+        console.log(`\n${list.description}`);
+      }
+      console.log(`\n👤 Created by: @${list.owner.username}${list.owner.verified ? " ✓" : ""}`);
+      console.log(`👥 ${list.memberCount.toLocaleString()} members | ${list.followerCount.toLocaleString()} followers`);
+      if (list.isPrivate) {
+        console.log(`🔒 Private list`);
+      }
+      console.log("\n" + "─".repeat(80));
+
+      for (const tweet of tweets) {
+        console.log(`\n@${tweet.author.username}${tweet.author.verified ? " ✓" : ""} - ${tweet.author.displayName}`);
+        console.log(tweet.text);
+        console.log(`\n${formatMetrics(tweet.metrics)}`);
+        console.log("─".repeat(80));
+      }
+
+      console.log(`\n📊 Showing ${tweets.length} tweets${timeline.hasMore ? " (more available)" : ""}`);
+    }
+  } catch (error) {
+    const structured = formatError(error);
+    console.error(JSON.stringify(structured, null, 2));
+    process.exit(structured.code);
+  }
+}
+

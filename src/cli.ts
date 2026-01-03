@@ -167,6 +167,21 @@ twitterCmd
     })
   );
 
+twitterCmd
+  .command('list')
+  .description('Get Twitter List timeline')
+  .argument('<list-id>', 'Twitter List ID (from URL: x.com/i/lists/{id})')
+  .option('-c, --count <n>', 'number of tweets to fetch', '20')
+  .action(
+    wrapCommand(async (listId: string, options: { count: string }, cmd: Command) => {
+      const count = parseInt(options.count, 10);
+      if (isNaN(count) || count < 1 || count > 100) {
+        throw new Error('Count must be between 1 and 100');
+      }
+      await twitter.getList(listId, { ...getGlobalOptions(cmd), count });
+    })
+  );
+
 // ============================================================================
 // LinkedIn Commands
 // ============================================================================

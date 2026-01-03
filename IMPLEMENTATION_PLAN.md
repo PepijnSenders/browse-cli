@@ -310,6 +310,7 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 | 13. Code Quality Improvements | ✓ Completed |
 | 14. Advanced Features | ✓ Completed |
 | 15. Enhanced Twitter Metrics | ✓ Completed |
+| 16. Twitter Lists Support | ✓ Completed |
 
 ---
 
@@ -457,6 +458,64 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 - Text output displays 🔖 for bookmarks and 💭 for quotes when available
 
 **Verify**: Enhanced Twitter metrics extraction complete ✓
+
+---
+
+## Phase 16: Twitter Lists Support
+
+### 16.1 Twitter Lists Type Definitions
+- [x] Add TwitterList interface to types.ts (id, name, description, owner, memberCount, followerCount, isPrivate, url, bannerImageUrl)
+- [x] Add TwitterListTimeline interface (list, tweets, hasMore)
+- [x] Update imports in twitter scraper with new types
+
+**Impact**: Full type safety for Twitter Lists feature with comprehensive metadata extraction.
+
+### 16.2 Twitter Lists Scraper Functions
+- [x] Implement navigateToList(page, listId, timeout) to navigate to list pages
+- [x] Implement extractList(page) to extract list metadata using data-testid selectors
+- [x] Extract list name, description, owner information, member/follower counts
+- [x] Detect private lists using lock icon selectors
+- [x] Extract banner images when available
+- [x] Implement extractListTimeline(page, count) to get tweets from list with pagination
+- [x] Reuse collectTimelineTweets for consistent tweet extraction
+
+**Impact**: Enables scraping of Twitter Lists (curated collections of accounts), providing both list metadata and member tweets.
+
+### 16.3 CLI Commands for Twitter Lists
+- [x] Add getList command handler in src/commands/twitter.ts
+- [x] Support both JSON and text output formats for list timelines
+- [x] Add error handling for list-specific errors (not found, private, login required)
+- [x] Wire up `twitter list <list-id>` command in CLI with --count option
+- [x] Format list output with emoji indicators and member statistics
+
+**Impact**: CLI users can scrape Twitter Lists directly from command line.
+
+### 16.4 MCP Tools for Twitter Lists
+- [x] Add navigateToList and extractListTimeline imports to MCP server
+- [x] Implement scrape_twitter_list MCP tool with listId and optional count parameters
+- [x] Add comprehensive error handling for list access errors
+- [x] Return structured data with list metadata, tweets array, and pagination info
+
+**Impact**: MCP clients can access Twitter Lists programmatically through MCP protocol.
+
+### 16.5 Testing & Verification
+- [x] Run typecheck to verify all type definitions are correct
+- [x] Run test suite (all 187 tests passing)
+- [x] Fix template literal syntax errors in text output
+- [x] Fix type mismatches with collectTimelineTweets return value
+- [x] Update error handling to use valid ErrorType values
+
+**Verify**: All typechecks and tests pass ✓
+
+**Implementation Details**:
+- Twitter Lists URL pattern: `https://x.com/i/lists/{listId}` where listId is numeric
+- Uses data-testid selectors consistent with existing Twitter scraping approach
+- Supports K/M/B suffix parsing for member and follower counts
+- Reuses existing tweet extraction logic for timeline consistency
+- Private list detection via lock icon in DOM
+- Banner image extraction when present
+
+**Verify**: Twitter Lists support fully implemented and tested ✓
 
 ---
 

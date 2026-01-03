@@ -13,7 +13,9 @@ import type {
   TwitterTweetType,
   PlatformErrorType,
   TwitterPost,
-  TwitterTimeline
+  TwitterTimeline,
+  TwitterList,
+  TwitterListTimeline
 } from '../types.js';
 import { parseTwitterNumber, cleanText } from '../utils/index.js';
 import {
@@ -985,4 +987,176 @@ export async function extractTimeline(page: Page, count = 20): Promise<TwitterTi
  */
 export async function extractPost(page: Page): Promise<TwitterPost> {
   return extractTweetPost(page);
+}
+
+// ============================================================================
+// Twitter Lists Functions
+// ============================================================================
+
+/**
+ * Navigate to a Twitter List page
+ *
+ * @param page - Playwright Page object
+ * @param listId - Twitter List ID (from URL: x.com/i/lists/{listId})
+ * @param timeout - Navigation timeout in milliseconds (default: 30000)
+ *
+ * @example
+ * await navigateToList(page, '1234567890');
+ */
+export async function navigateToList(
+  page: Page,
+  listId: string,
+  timeout = 30000
+): Promise<void> {
+  const url = `https://x.com/i/lists/${listId}`;
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+  await humanDelay(1000, 2000);
+}
+
+/**
+ * Extract Twitter List information from a list page
+ *
+ * @param page - Playwright Page object positioned on a list page
+ * @returns Twitter List metadata
+ *
+ * @example
+ * await page.goto('https://x.com/i/lists/1234567890');
+ * const list = await extractList(page);
+ */
+export async function extractList(page: Page): Promise<TwitterList> {
+  // Extract list ID from URL
+  const url = page.url();
+  const listIdMatch = url.match(/\/lists\/(\d+)/);
+  const listId = listIdMatch ? listIdMatch[1] : '';
+
+  return page.evaluate((id) => {
+    const result: any = {
+      id,
+      name: '',
+      description: '',
+      owner: {
+        username: '',
+        displayName: '',
+        verified: false
+      },
+      memberCount: 0,
+      followerCount: 0,
+      isPrivate: false,
+      url: window.location.href
+    };
+
+    // Extract list name
+    const nameElement = document.querySelector('h1[role="heading"]');
+    if (nameElement) {
+      result.name = nameElement.textContent?.trim() || '';
+    }
+
+    // Extract description
+    const descElement = document.querySelector('[data-testid="listDescription"]');
+    if (descElement) {
+      result.description = descElement.textContent?.trim() || '';
+    }
+
+    // Extract owner information
+    const ownerElement = document.querySelector('[data-testid="UserCell"]');
+    if (ownerElement) {
+      const ownerNameElement = ownerElement.querySelector('[data-testid="User-Name"]');
+      if (ownerNameElement) {
+        const nameSpans = ownerNameElement.querySelectorAll('span');
+        if (nameSpans.length > 0) {
+          result.owner.displayName = nameSpans[0].textContent?.trim() || '';
+        }
+        // Extract username from link
+        const ownerLink = ownerElement.querySelector('a[href*="/"]');
+        if (ownerLink) {
+          const href = ownerLink.getAttribute('href') || '';
+          const usernameMatch = href.match(/\/([^\/]+)$/);
+          if (usernameMatch) {
+            result.owner.username = usernameMatch[1];
+          }
+        }
+        // Check verification
+        const verifiedBadge = ownerNameElement.querySelector('svg[aria-label*="Verified"]');
+        result.owner.verified = !!verifiedBadge;
+      }
+    }
+
+    // Extract member count
+    const memberElement = document.querySelector('a[href$="/members"] span');
+    if (memberElement) {
+      const memberText = memberElement.textContent?.trim() || '0';
+      const memberMatch = memberText.match(/([\d,.]+[KMB]?)/);
+      if (memberMatch) {
+        const cleaned = memberMatch[1].replace(/,/g, '');
+        if (cleaned.endsWith('K')) {
+          result.memberCount = Math.round(parseFloat(cleaned) * 1000);
+        } else if (cleaned.endsWith('M')) {
+          result.memberCount = Math.round(parseFloat(cleaned) * 1000000);
+        } else if (cleaned.endsWith('B')) {
+          result.memberCount = Math.round(parseFloat(cleaned) * 1000000000);
+        } else {
+          result.memberCount = parseInt(cleaned, 10) || 0;
+        }
+      }
+    }
+
+    // Extract follower count
+    const followerElement = document.querySelector('a[href$="/followers"] span');
+    if (followerElement) {
+      const followerText = followerElement.textContent?.trim() || '0';
+      const followerMatch = followerText.match(/([\d,.]+[KMB]?)/);
+      if (followerMatch) {
+        const cleaned = followerMatch[1].replace(/,/g, '');
+        if (cleaned.endsWith('K')) {
+          result.followerCount = Math.round(parseFloat(cleaned) * 1000);
+        } else if (cleaned.endsWith('M')) {
+          result.followerCount = Math.round(parseFloat(cleaned) * 1000000);
+        } else if (cleaned.endsWith('B')) {
+          result.followerCount = Math.round(parseFloat(cleaned) * 1000000000);
+        } else {
+          result.followerCount = parseInt(cleaned, 10) || 0;
+        }
+      }
+    }
+
+    // Check if list is private (look for lock icon or private indicator)
+    const lockIcon = document.querySelector('[data-testid="iconBadge"] svg[aria-label*="Private"], [data-testid="iconBadge"] svg[aria-label*="Lock"]');
+    result.isPrivate = !!lockIcon;
+
+    // Extract banner image if present
+    const bannerImg = document.querySelector('[data-testid="listBanner"] img');
+    if (bannerImg) {
+      result.bannerImageUrl = bannerImg.getAttribute('src') || undefined;
+    }
+
+    return result;
+  }, listId);
+}
+
+/**
+ * Extract tweets from a Twitter List timeline
+ *
+ * @param page - Playwright Page object positioned on a list page
+ * @param count - Number of tweets to collect (default: 20, max: 100)
+ * @returns Twitter List timeline with list metadata and tweets
+ *
+ * @example
+ * await page.goto('https://x.com/i/lists/1234567890');
+ * const timeline = await extractListTimeline(page, 50);
+ */
+export async function extractListTimeline(
+  page: Page,
+  count = 20
+): Promise<TwitterListTimeline> {
+  // Extract list metadata first
+  const list = await extractList(page);
+
+  // Collect tweets from the list
+  const result = await collectTimelineTweets(page, count);
+
+  return {
+    list,
+    tweets: result.tweets,
+    hasMore: result.hasMore
+  };
 }

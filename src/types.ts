@@ -150,6 +150,45 @@ export interface TwitterSearchResults {
   hasMore: boolean;
 }
 
+/**
+ * Twitter List information
+ * Extracted from https://x.com/i/lists/{list_id}
+ */
+export interface TwitterList {
+  /** List ID */
+  id: string;
+  /** List name/title */
+  name: string;
+  /** List description */
+  description: string;
+  /** List creator/owner */
+  owner: TwitterAuthor;
+  /** Number of members in the list */
+  memberCount: number;
+  /** Number of followers of the list */
+  followerCount: number;
+  /** Whether the list is private */
+  isPrivate: boolean;
+  /** List creation date (ISO 8601 format) */
+  createdAt?: string;
+  /** URL to the list */
+  url: string;
+  /** Banner image URL */
+  bannerImageUrl?: string;
+}
+
+/**
+ * Twitter List timeline response
+ */
+export interface TwitterListTimeline {
+  /** List information */
+  list: TwitterList;
+  /** Array of tweets from list members */
+  tweets: TwitterTweet[];
+  /** Whether more tweets are available */
+  hasMore: boolean;
+}
+
 // ============================================================================
 // LinkedIn Types
 // ============================================================================
