@@ -182,6 +182,8 @@ const rateLimits: Map<string, RateLimitState> = new Map();
 const PLATFORM_LIMITS = {
   twitter: { minDelay: 1000, maxDelay: 3000, maxConsecutive: 10 },
   linkedin: { minDelay: 2000, maxDelay: 5000, maxConsecutive: 5 },
+  instagram: { minDelay: 1500, maxDelay: 4000, maxConsecutive: 8 },
+  reddit: { minDelay: 1000, maxDelay: 2500, maxConsecutive: 15 },
   default: { minDelay: 500, maxDelay: 1500, maxConsecutive: 20 },
 };
 

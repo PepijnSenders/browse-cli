@@ -78,8 +78,8 @@ describe('MCP Server Integration', () => {
 
   describe('Tool Count', () => {
     test('has expected number of tools', () => {
-      // 5 browser + 2 generic + 4 twitter + 3 linkedin = 14
-      expect(tools.length).toBe(14);
+      // 5 browser + 2 generic + 4 twitter + 3 linkedin + 2 instagram + 3 reddit = 19
+      expect(tools.length).toBe(19);
     });
   });
 });

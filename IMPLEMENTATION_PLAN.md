@@ -312,7 +312,7 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
 | 7. Testing | Complete |
 | 8. Documentation | Complete |
 | 9. Publishing | Complete |
-| 10. Additional Scrapers | Not Started |
+| 10. Additional Scrapers | In Progress (Instagram, Reddit done; Facebook, TikTok pending) |
 | 11. Advanced Features | Not Started |
 
 ---
@@ -341,16 +341,16 @@ MCP server for scraping "uncrawlable" sites using existing browser session via P
 ## Phase 10: Additional Scrapers (Priority: MEDIUM)
 
 ### 10.1 Instagram Scraper
-- [ ] `scrape_instagram_profile` - Get user profile info
-- [ ] `scrape_instagram_posts` - Get user's posts
+- [x] `scrape_instagram_profile` - Get user profile info
+- [x] `scrape_instagram_posts` - Get user's posts
 - [ ] `scrape_instagram_stories` - Get stories (if accessible)
 
 **Verify:** `scrape_instagram_profile` returns `username`, `displayName`, `followersCount`
 
 ### 10.2 Reddit Scraper
-- [ ] `scrape_reddit_user` - Get user profile/posts
-- [ ] `scrape_reddit_subreddit` - Get subreddit posts
-- [ ] `scrape_reddit_post` - Get post + comments
+- [x] `scrape_reddit_user` - Get user profile/posts
+- [x] `scrape_reddit_subreddit` - Get subreddit posts
+- [x] `scrape_reddit_post` - Get post + comments
 
 **Verify:** `scrape_reddit_subreddit` for `r/programming` returns posts with `title`, `score`, `comments`
 

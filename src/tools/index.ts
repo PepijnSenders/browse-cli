@@ -25,6 +25,15 @@ import {
   scrapeLinkedInPosts,
   scrapeLinkedInSearch,
 } from '../scrapers/linkedin.js';
+import {
+  scrapeInstagramProfile,
+  scrapeInstagramPosts,
+} from '../scrapers/instagram.js';
+import {
+  scrapeRedditUser,
+  scrapeRedditSubreddit,
+  scrapeRedditPost,
+} from '../scrapers/reddit.js';
 
 /**
  * Tool Input Schemas
@@ -89,6 +98,32 @@ const scrapeLinkedInSearchSchema = z.object({
   query: z.string().describe('Search query'),
   type: z.enum(['people', 'posts', 'companies']).optional().describe('Type of search (default: people)'),
   count: z.number().optional().describe('Number of results (default: 10, max: 50)'),
+});
+
+// Instagram Tools (Phase 10)
+const scrapeInstagramProfileSchema = z.object({
+  username: z.string().describe('Instagram username (without @)'),
+});
+
+const scrapeInstagramPostsSchema = z.object({
+  username: z.string().describe('Instagram username'),
+  count: z.number().optional().describe('Number of posts (default: 12, max: 50)'),
+});
+
+// Reddit Tools (Phase 10)
+const scrapeRedditUserSchema = z.object({
+  username: z.string().describe('Reddit username (without u/)'),
+});
+
+const scrapeRedditSubredditSchema = z.object({
+  subreddit: z.string().describe('Subreddit name (without r/)'),
+  count: z.number().optional().describe('Number of posts (default: 25, max: 100)'),
+  sort: z.enum(['hot', 'new', 'top']).optional().describe('Sort order (default: hot)'),
+});
+
+const scrapeRedditPostSchema = z.object({
+  url: z.string().describe('Full Reddit post URL'),
+  maxComments: z.number().optional().describe('Max comments to fetch (default: 20)'),
 });
 
 /**
@@ -304,6 +339,97 @@ export const tools: Tool[] = [
       required: ['query'],
     },
   },
+
+  // Instagram Tools
+  {
+    name: 'scrape_instagram_profile',
+    description: "Scrape an Instagram user's profile information",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'Instagram username (without @)',
+        },
+      },
+      required: ['username'],
+    },
+  },
+  {
+    name: 'scrape_instagram_posts',
+    description: "Scrape posts from an Instagram user's profile",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'Instagram username',
+        },
+        count: {
+          type: 'number',
+          description: 'Number of posts (default: 12, max: 50)',
+        },
+      },
+      required: ['username'],
+    },
+  },
+
+  // Reddit Tools
+  {
+    name: 'scrape_reddit_user',
+    description: "Scrape a Reddit user's profile information",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        username: {
+          type: 'string',
+          description: 'Reddit username (without u/)',
+        },
+      },
+      required: ['username'],
+    },
+  },
+  {
+    name: 'scrape_reddit_subreddit',
+    description: 'Scrape posts from a subreddit',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        subreddit: {
+          type: 'string',
+          description: 'Subreddit name (without r/)',
+        },
+        count: {
+          type: 'number',
+          description: 'Number of posts (default: 25, max: 100)',
+        },
+        sort: {
+          type: 'string',
+          enum: ['hot', 'new', 'top'],
+          description: 'Sort order (default: hot)',
+        },
+      },
+      required: ['subreddit'],
+    },
+  },
+  {
+    name: 'scrape_reddit_post',
+    description: 'Scrape a Reddit post with comments',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'Full Reddit post URL',
+        },
+        maxComments: {
+          type: 'number',
+          description: 'Max comments to fetch (default: 20)',
+        },
+      },
+      required: ['url'],
+    },
+  },
 ];
 
 /**
@@ -331,6 +457,15 @@ const schemaMap = {
   scrape_linkedin_profile: scrapeLinkedInProfileSchema,
   scrape_linkedin_posts: scrapeLinkedInPostsSchema,
   scrape_linkedin_search: scrapeLinkedInSearchSchema,
+
+  // Instagram Tools
+  scrape_instagram_profile: scrapeInstagramProfileSchema,
+  scrape_instagram_posts: scrapeInstagramPostsSchema,
+
+  // Reddit Tools
+  scrape_reddit_user: scrapeRedditUserSchema,
+  scrape_reddit_subreddit: scrapeRedditSubredditSchema,
+  scrape_reddit_post: scrapeRedditPostSchema,
 } as const;
 
 /**
@@ -571,6 +706,94 @@ async function handleScrapeLinkedInSearch(args: z.infer<typeof scrapeLinkedInSea
 }
 
 /**
+ * Tool Handlers - Instagram Tools (Phase 10)
+ */
+
+async function handleScrapeInstagramProfile(args: z.infer<typeof scrapeInstagramProfileSchema>) {
+  debugLog('scrape_instagram_profile', args.username);
+  await waitForRateLimit('instagram');
+  const page = await getPage();
+  const profile = await scrapeInstagramProfile(page, args.username);
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(profile, null, 2),
+      },
+    ],
+  };
+}
+
+async function handleScrapeInstagramPosts(args: z.infer<typeof scrapeInstagramPostsSchema>) {
+  debugLog('scrape_instagram_posts', args.username, args.count);
+  await waitForRateLimit('instagram');
+  const page = await getPage();
+  const posts = await scrapeInstagramPosts(page, args.username, args.count);
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify({ posts, count: posts.length }, null, 2),
+      },
+    ],
+  };
+}
+
+/**
+ * Tool Handlers - Reddit Tools (Phase 10)
+ */
+
+async function handleScrapeRedditUser(args: z.infer<typeof scrapeRedditUserSchema>) {
+  debugLog('scrape_reddit_user', args.username);
+  await waitForRateLimit('reddit');
+  const page = await getPage();
+  const user = await scrapeRedditUser(page, args.username);
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(user, null, 2),
+      },
+    ],
+  };
+}
+
+async function handleScrapeRedditSubreddit(args: z.infer<typeof scrapeRedditSubredditSchema>) {
+  debugLog('scrape_reddit_subreddit', args.subreddit, args.count, args.sort);
+  await waitForRateLimit('reddit');
+  const page = await getPage();
+  const posts = await scrapeRedditSubreddit(page, args.subreddit, args.count, args.sort);
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify({ posts, count: posts.length }, null, 2),
+      },
+    ],
+  };
+}
+
+async function handleScrapeRedditPost(args: z.infer<typeof scrapeRedditPostSchema>) {
+  debugLog('scrape_reddit_post', args.url, args.maxComments);
+  await waitForRateLimit('reddit');
+  const page = await getPage();
+  const result = await scrapeRedditPost(page, args.url, args.maxComments);
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(result, null, 2),
+      },
+    ],
+  };
+}
+
+/**
  * Handler mapping
  */
 const handlers = {
@@ -595,6 +818,15 @@ const handlers = {
   scrape_linkedin_profile: handleScrapeLinkedInProfile,
   scrape_linkedin_posts: handleScrapeLinkedInPosts,
   scrape_linkedin_search: handleScrapeLinkedInSearch,
+
+  // Instagram Tools
+  scrape_instagram_profile: handleScrapeInstagramProfile,
+  scrape_instagram_posts: handleScrapeInstagramPosts,
+
+  // Reddit Tools
+  scrape_reddit_user: handleScrapeRedditUser,
+  scrape_reddit_subreddit: handleScrapeRedditSubreddit,
+  scrape_reddit_post: handleScrapeRedditPost,
 } as const;
 
 /**
