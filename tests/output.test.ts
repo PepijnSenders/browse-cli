@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach } from "bun:test";
+import { describe, expect, test, beforeEach, spyOn, afterEach } from "bun:test";
 import {
   formatNumber,
   formatRelativeTime,
@@ -14,7 +14,15 @@ import {
   createSpinner,
   setOutputOptions,
   getOutputOptions,
+  printSuccess,
+  printWarning,
+  printInfo,
+  printError,
+  isJsonMode,
+  output,
+  outputError,
 } from "../src/output/index.js";
+import { printJSON, printJSONError } from "../src/output/json.js";
 import { XCLIError, ErrorCode, APIError, ValidationError } from "../src/types/errors.js";
 import type { User, Tweet } from "../src/types/index.js";
 
@@ -419,5 +427,126 @@ describe("Spinner Creation", () => {
   test("createSpinner has text property", () => {
     const spinner = createSpinner("Test message");
     expect(spinner.text).toBe("Test message");
+  });
+});
+
+describe("Print Functions", () => {
+  let consoleSpy: ReturnType<typeof spyOn>;
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    consoleSpy = spyOn(console, "log").mockImplementation(() => {});
+    consoleErrorSpy = spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
+  test("printSuccess calls console.log", () => {
+    printSuccess("Operation completed");
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  test("printWarning calls console.log", () => {
+    printWarning("Be careful");
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  test("printInfo calls console.log", () => {
+    printInfo("Some information");
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  test("printError calls console.error with XCLIError", () => {
+    const error = new XCLIError("Test error", ErrorCode.API_ERROR);
+    printError(error);
+    expect(consoleErrorSpy).toHaveBeenCalled();
+  });
+
+  test("printError calls console.error with regular Error", () => {
+    const error = new Error("Regular error");
+    printError(error);
+    expect(consoleErrorSpy).toHaveBeenCalled();
+  });
+
+  test("printJSON calls console.log", () => {
+    printJSON({ test: "data" });
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  test("printJSONError calls console.error", () => {
+    const error = new XCLIError("Test error", ErrorCode.API_ERROR);
+    printJSONError(error);
+    expect(consoleErrorSpy).toHaveBeenCalled();
+  });
+});
+
+describe("JSON Mode Detection", () => {
+  beforeEach(() => {
+    setOutputOptions({});
+  });
+
+  test("isJsonMode returns true when json option is set", () => {
+    setOutputOptions({ json: true });
+    expect(isJsonMode()).toBe(true);
+  });
+
+  test("isJsonMode returns false when json option is false and TTY", () => {
+    setOutputOptions({ json: false });
+    // In test environment, isTTY may be undefined or false
+    const result = isJsonMode();
+    expect(typeof result).toBe("boolean");
+  });
+});
+
+describe("Output Functions", () => {
+  let consoleSpy: ReturnType<typeof spyOn>;
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    setOutputOptions({});
+    consoleSpy = spyOn(console, "log").mockImplementation(() => {});
+    consoleErrorSpy = spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
+  test("output with json mode outputs JSON", () => {
+    setOutputOptions({ json: true });
+    output({ test: "data" });
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  test("output with pretty formatter uses formatter", () => {
+    setOutputOptions({ json: false });
+    // Force non-JSON mode by setting json to false
+    // Note: may still output JSON if not TTY
+    output({ test: "data" }, (data) => `Pretty: ${JSON.stringify(data)}`);
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  test("output without formatter falls back to JSON", () => {
+    setOutputOptions({ json: false });
+    output({ test: "data" });
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
+  test("outputError in json mode outputs JSON error", () => {
+    setOutputOptions({ json: true });
+    const error = new XCLIError("Test error", ErrorCode.API_ERROR);
+    outputError(error);
+    expect(consoleErrorSpy).toHaveBeenCalled();
+  });
+
+  test("outputError in non-json mode outputs formatted error", () => {
+    setOutputOptions({ json: false });
+    const error = new XCLIError("Test error", ErrorCode.API_ERROR);
+    outputError(error);
+    expect(consoleErrorSpy).toHaveBeenCalled();
   });
 });

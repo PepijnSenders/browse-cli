@@ -248,8 +248,8 @@ This document tracks the implementation of x-cli based on the spec phases.
 
 ### Testing & Quality
 - [x] Type checking passes (bun run typecheck)
-- [x] Test suite (82 tests, 93% line coverage, 90% function coverage)
-- [ ] 100% test coverage (remaining uncovered code is console output functions)
+- [x] Test suite (96 tests, 98% line coverage, 100% function coverage)
+- [ ] 100% line coverage (remaining: TTY-dependent branches, cli-table3 rendering)
 - [ ] Integration tests (E2E flows)
 - [x] Build optimization (minification enabled; ~58MB compiled, ~324KB Node bundle)
 
@@ -280,6 +280,12 @@ These items from specs/09-12 are now in scope:
 ---
 
 ## Recent Enhancements
+
+**2025-01-03 (Test Coverage - 98%):**
+- Added 14 new tests for print functions, JSON mode, output functions (96 total tests)
+- Achieved 100% function coverage, 98% line coverage
+- Console mocking with spyOn for print function tests
+- Remaining uncovered: TTY-dependent branches, cli-table3 rendering
 
 **2025-01-03 (Website Landing Page):**
 - Created docs/index.html with hero, installation, features, quick start, commands
@@ -401,4 +407,4 @@ These items from specs/09-12 are now in scope:
 1. Website: Interactive demo (terminal recording GIF)
 2. Testing: Integration tests (E2E flows with real API)
 
-Note: Unit test coverage is at practical limits (93%). Landing page complete and deployed via GitHub Pages.
+Note: 100% function coverage achieved. 98% line coverage (remaining: TTY-dependent, cli-table3 rendering).
