@@ -248,8 +248,8 @@ This document tracks the implementation of x-cli based on the spec phases.
 
 ### Testing & Quality
 - [x] Type checking passes (bun run typecheck)
-- [x] Test suite (99 tests, 99.7% line coverage, 100% function coverage)
-- [ ] Integration tests (E2E flows)
+- [x] Test suite (99 unit tests, 99.7% line coverage, 100% function coverage)
+- [x] Integration tests (12 E2E tests, run with RUN_INTEGRATION_TESTS=true)
 - [x] Build optimization (minification enabled; ~58MB compiled, ~324KB Node bundle)
 
 ---
@@ -279,6 +279,12 @@ These items from specs/09-12 are now in scope:
 ---
 
 ## Recent Enhancements
+
+**2025-01-03 (Integration Tests):**
+- Created tests/integration.test.ts with 12 E2E test cases
+- Tests for: auth, timeline, user lookup, search, post lifecycle, engagement, bookmarks, following
+- Skipped by default, run with: RUN_INTEGRATION_TESTS=true bun test tests/integration.test.ts
+- Completes all testing phases
 
 **2025-01-03 (Website Demo):**
 - Created docs/demo.svg - static terminal mockup showing CLI features
@@ -412,7 +418,15 @@ These items from specs/09-12 are now in scope:
 
 ## Next Priority
 
-**All phases complete!** Only remaining item:
-1. Testing: Integration tests (E2E flows with real API)
+**ALL PHASES COMPLETE!**
 
-Note: Website complete with static demo. 99.7% line coverage, 100% function coverage with 99 tests.
+The x-cli project is fully implemented with:
+- 99 unit tests (99.7% line coverage, 100% function coverage)
+- 12 integration tests (E2E flows, skipped by default)
+- Complete website with demo
+- Full documentation and Claude integration
+
+Future enhancements could include:
+- Additional Grok AI features
+- Real-time streaming support
+- Plugin system
