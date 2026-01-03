@@ -3,8 +3,8 @@
  */
 
 import * as browserModule from '../browser.js';
-import { extractPageContent, executePageScript } from '../scrapers/generic.js';
-import type { GlobalOptions, ScrapeOptions, PageContent } from '../types.js';
+import { scrapePage, executePageScript } from '../scrapers/generic.js';
+import type { GlobalOptions, ScrapeOptions } from '../types.js';
 
 /**
  * Scrape content from current page
@@ -14,61 +14,41 @@ export async function scrape(
 ): Promise<void> {
   const page = await browserModule.getPage();
 
-  // If selector is provided, we need to scope the extraction
-  let content: PageContent;
+  // Use unified scrapePage function which handles both cases
+  const content = await scrapePage(page, options.selector);
 
-  if (options.selector) {
-    // Extract content scoped to the selector
-    const url = page.url();
-    const title = await page.title();
+  // Output in requested format
+  if (options.format === 'text') {
+    console.log(`URL: ${content.url}`);
+    console.log(`Title: ${content.title}`);
+    console.log(`\n--- Content ---`);
+    console.log(content.text);
 
-    const extracted = await page.evaluate((selector) => {
-      const element = document.querySelector(selector);
-      if (!element) {
-        throw new Error(`Element not found: ${selector}`);
+    if (content.links.length > 0) {
+      console.log(`\n--- Links (${content.links.length}) ---`);
+      content.links.slice(0, 20).forEach((link, i) => {
+        console.log(`${i + 1}. ${link.text || '(no text)'}`);
+        console.log(`   ${link.href}`);
+      });
+      if (content.links.length > 20) {
+        console.log(`   ... and ${content.links.length - 20} more`);
       }
+    }
 
-      // Extract text (max 100,000 chars)
-      const text = (element.textContent || '').trim().slice(0, 100000);
-
-      // Extract links (max 100)
-      const linkElements = element.querySelectorAll('a[href]');
-      const links: Array<{ text: string; href: string }> = [];
-      for (let i = 0; i < Math.min(linkElements.length, 100); i++) {
-        const anchor = linkElements[i] as HTMLAnchorElement;
-        links.push({
-          text: (anchor.textContent || '').trim(),
-          href: anchor.href
-        });
+    if (content.images.length > 0) {
+      console.log(`\n--- Images (${content.images.length}) ---`);
+      content.images.slice(0, 10).forEach((img, i) => {
+        console.log(`${i + 1}. ${img.alt || '(no alt text)'}`);
+        console.log(`   ${img.src}`);
+      });
+      if (content.images.length > 10) {
+        console.log(`   ... and ${content.images.length - 10} more`);
       }
-
-      // Extract images (max 50)
-      const imgElements = element.querySelectorAll('img[src]');
-      const images: Array<{ alt: string; src: string }> = [];
-      for (let i = 0; i < Math.min(imgElements.length, 50); i++) {
-        const img = imgElements[i] as HTMLImageElement;
-        images.push({
-          alt: img.alt || '',
-          src: img.src
-        });
-      }
-
-      return { text, links, images };
-    }, options.selector);
-
-    content = {
-      url,
-      title,
-      text: extracted.text,
-      links: extracted.links,
-      images: extracted.images
-    };
+    }
   } else {
-    // Use the generic extractor for full page
-    content = await extractPageContent(page);
+    // JSON format
+    console.log(JSON.stringify(content, null, 2));
   }
-
-  console.log(JSON.stringify(content, null, 2));
 }
 
 /**
@@ -76,12 +56,27 @@ export async function scrape(
  */
 export async function script(
   code: string,
-  _options: GlobalOptions
+  options: GlobalOptions
 ): Promise<void> {
   const page = await browserModule.getPage();
 
   // Use the properly validated executePageScript function
   const result = await executePageScript(page, code);
 
-  console.log(JSON.stringify(result, null, 2));
+  // Output in requested format
+  if (options.format === 'text') {
+    console.log(`Script: ${result.script}`);
+    console.log(`Size: ${result.size} bytes`);
+    console.log(`\n--- Result ---`);
+
+    // Pretty print the result
+    if (typeof result.result === 'object' && result.result !== null) {
+      console.log(JSON.stringify(result.result, null, 2));
+    } else {
+      console.log(result.result);
+    }
+  } else {
+    // JSON format
+    console.log(JSON.stringify(result, null, 2));
+  }
 }

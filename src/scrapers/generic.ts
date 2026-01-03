@@ -7,6 +7,113 @@ import type { Page } from 'playwright-core';
 import type { PageContent, PageLink, PageImage, PageScript } from '../types.js';
 
 /**
+ * Browser-side extraction helpers.
+ * NOTE: This code runs in the browser context (inside page.evaluate()).
+ * It must be self-contained - no external dependencies or imports.
+ *
+ * @param rootSelector - Optional CSS selector to extract from (null for auto-detection)
+ * @returns Extracted content object
+ */
+function extractInBrowser(rootSelector: string | null) {
+  // Helper: Find main content area
+  function findMainContent(): Element {
+    const main = document.querySelector('main');
+    if (main) return main;
+
+    const article = document.querySelector('article');
+    if (article) return article;
+
+    const roleMain = document.querySelector('[role="main"]');
+    if (roleMain) return roleMain;
+
+    return document.body;
+  }
+
+  // Helper: Extract text
+  function extractText(element: Element): string {
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden') {
+      return '';
+    }
+
+    if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(element.tagName)) {
+      return '';
+    }
+
+    return element.textContent?.trim() || '';
+  }
+
+  // Helper: Extract links
+  function extractLinks(root: Element): Array<{ text: string; href: string }> {
+    const seen = new Set<string>();
+    const links: Array<{ text: string; href: string }> = [];
+
+    for (const anchor of root.querySelectorAll('a[href]')) {
+      const href = (anchor as HTMLAnchorElement).href;
+      if (!href || !href.startsWith('http') || seen.has(href)) {
+        continue;
+      }
+
+      seen.add(href);
+      links.push({
+        text: anchor.textContent?.trim() || '',
+        href
+      });
+
+      if (links.length >= 100) break; // Max 100 links
+    }
+
+    return links;
+  }
+
+  // Helper: Extract images
+  function extractImages(root: Element): Array<{ alt: string; src: string }> {
+    const seen = new Set<string>();
+    const images: Array<{ alt: string; src: string }> = [];
+
+    for (const img of root.querySelectorAll('img[src]')) {
+      const src = (img as HTMLImageElement).src;
+      if (!src || !src.startsWith('http') || seen.has(src)) {
+        continue;
+      }
+
+      seen.add(src);
+      images.push({
+        alt: (img as HTMLImageElement).alt || '',
+        src
+      });
+
+      if (images.length >= 50) break; // Max 50 images
+    }
+
+    return images;
+  }
+
+  // Determine which element to extract from
+  let targetElement: Element;
+  if (rootSelector) {
+    const element = document.querySelector(rootSelector);
+    if (!element) {
+      throw new Error(`Element not found: ${rootSelector}`);
+    }
+    targetElement = element;
+  } else {
+    targetElement = findMainContent();
+  }
+
+  // Extract with limits
+  let text = extractText(targetElement);
+  if (text.length > 100000) {
+    text = text.slice(0, 100000); // Max 100,000 chars
+  }
+
+  const links = extractLinks(targetElement);
+  const images = extractImages(targetElement);
+
+  return { text, links, images };
+}
+
+/**
  * Extract content from a page
  * Uses content detection: main > article > [role="main"] > body
  *
@@ -17,95 +124,8 @@ export async function extractPageContent(page: Page): Promise<PageContent> {
   const url = page.url();
   const title = await page.title();
 
-  // Extract content in browser context
-  const extracted = await page.evaluate(() => {
-    // Helper: Find main content area
-    function findMainContent(): Element {
-      const main = document.querySelector('main');
-      if (main) return main;
-
-      const article = document.querySelector('article');
-      if (article) return article;
-
-      const roleMain = document.querySelector('[role="main"]');
-      if (roleMain) return roleMain;
-
-      return document.body;
-    }
-
-    // Helper: Extract text
-    function extractText(element: Element): string {
-      const style = window.getComputedStyle(element);
-      if (style.display === 'none' || style.visibility === 'hidden') {
-        return '';
-      }
-
-      if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(element.tagName)) {
-        return '';
-      }
-
-      return element.textContent?.trim() || '';
-    }
-
-    // Helper: Extract links
-    function extractLinks(root: Element): Array<{ text: string; href: string }> {
-      const seen = new Set<string>();
-      const links: Array<{ text: string; href: string }> = [];
-
-      for (const anchor of root.querySelectorAll('a[href]')) {
-        const href = (anchor as HTMLAnchorElement).href;
-        if (!href || !href.startsWith('http') || seen.has(href)) {
-          continue;
-        }
-
-        seen.add(href);
-        links.push({
-          text: anchor.textContent?.trim() || '',
-          href
-        });
-
-        if (links.length >= 100) break; // Max 100 links
-      }
-
-      return links;
-    }
-
-    // Helper: Extract images
-    function extractImages(root: Element): Array<{ alt: string; src: string }> {
-      const seen = new Set<string>();
-      const images: Array<{ alt: string; src: string }> = [];
-
-      for (const img of root.querySelectorAll('img[src]')) {
-        const src = (img as HTMLImageElement).src;
-        if (!src || !src.startsWith('http') || seen.has(src)) {
-          continue;
-        }
-
-        seen.add(src);
-        images.push({
-          alt: (img as HTMLImageElement).alt || '',
-          src
-        });
-
-        if (images.length >= 50) break; // Max 50 images
-      }
-
-      return images;
-    }
-
-    const mainContent = findMainContent();
-
-    // Extract with limits
-    let text = extractText(mainContent);
-    if (text.length > 100000) {
-      text = text.slice(0, 100000); // Max 100,000 chars
-    }
-
-    const links = extractLinks(mainContent);
-    const images = extractImages(mainContent);
-
-    return { text, links, images };
-  });
+  // Extract content in browser context (null selector = auto-detect main content)
+  const extracted = await page.evaluate(extractInBrowser, null);
 
   return {
     url,
@@ -230,85 +250,8 @@ export async function scrapePage(page: Page, selector?: string): Promise<PageCon
     throw new Error(`Element not found: ${selector}`);
   }
 
-  // Extract content from selected element
-  const extracted = await page.evaluate((sel) => {
-    // Helper: Extract text
-    function extractText(element: Element): string {
-      const style = window.getComputedStyle(element);
-      if (style.display === 'none' || style.visibility === 'hidden') {
-        return '';
-      }
-
-      if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(element.tagName)) {
-        return '';
-      }
-
-      return element.textContent?.trim() || '';
-    }
-
-    // Helper: Extract links
-    function extractLinks(root: Element): Array<{ text: string; href: string }> {
-      const seen = new Set<string>();
-      const links: Array<{ text: string; href: string }> = [];
-
-      for (const anchor of root.querySelectorAll('a[href]')) {
-        const href = (anchor as HTMLAnchorElement).href;
-        if (!href || !href.startsWith('http') || seen.has(href)) {
-          continue;
-        }
-
-        seen.add(href);
-        links.push({
-          text: anchor.textContent?.trim() || '',
-          href
-        });
-
-        if (links.length >= 100) break; // Max 100 links
-      }
-
-      return links;
-    }
-
-    // Helper: Extract images
-    function extractImages(root: Element): Array<{ alt: string; src: string }> {
-      const seen = new Set<string>();
-      const images: Array<{ alt: string; src: string }> = [];
-
-      for (const img of root.querySelectorAll('img[src]')) {
-        const src = (img as HTMLImageElement).src;
-        if (!src || !src.startsWith('http') || seen.has(src)) {
-          continue;
-        }
-
-        seen.add(src);
-        images.push({
-          alt: (img as HTMLImageElement).alt || '',
-          src
-        });
-
-        if (images.length >= 50) break; // Max 50 images
-      }
-
-      return images;
-    }
-
-    // Get the selected element
-    const element = document.querySelector(sel);
-    if (!element) {
-      throw new Error(`Element not found: ${sel}`);
-    }
-
-    // Extract with limits
-    let text = extractText(element);
-    if (text.length > 100000) {
-      text = text.slice(0, 100000); // Max 100,000 chars
-    }
-
-    const links = extractLinks(element);
-    const images = extractImages(element);
-
-    return { text, links, images };
-  }, selector);
+  // Extract content from selected element using shared extraction logic
+  const extracted = await page.evaluate(extractInBrowser, selector);
 
   return {
     url,

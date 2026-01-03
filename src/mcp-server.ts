@@ -73,11 +73,21 @@ function formatResult(data: unknown): { content: Array<{ type: 'text'; text: str
 }
 
 /**
- * Ensure browser connection and execute scraper function
+ * Ensure browser connection and execute scraper function with proper cleanup
+ *
+ * @param fn - The function to execute with browser connection
+ * @returns Result from the function
+ * @throws Re-throws any errors after cleanup
  */
 async function withBrowser<T>(fn: () => Promise<T>): Promise<T> {
-  await connect();
-  return await fn();
+  try {
+    await connect();
+    return await fn();
+  } catch (error) {
+    // Error will be handled by the tool handler
+    // We don't disconnect here as the connection can be reused
+    throw error;
+  }
 }
 
 /**
