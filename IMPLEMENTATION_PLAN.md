@@ -267,9 +267,9 @@ These items from specs/09-12 are now in scope:
 - [x] Version management (release script)
 
 ### Website (specs/11-website.md)
-- [ ] Landing page
-- [ ] Documentation site
-- [ ] Interactive demo
+- [x] Landing page (docs/index.html, docs/styles.css)
+- [x] GitHub Pages deployment workflow
+- [ ] Interactive demo (terminal recording GIF)
 
 ### Claude Integration (specs/12-claude-integration.md)
 - [x] MCP server implementation (src/mcp/, `x mcp` command)
@@ -280,6 +280,12 @@ These items from specs/09-12 are now in scope:
 ---
 
 ## Recent Enhancements
+
+**2025-01-03 (Website Landing Page):**
+- Created docs/index.html with hero, installation, features, quick start, commands
+- Created docs/styles.css with dark mode theme, responsive design
+- Created .github/workflows/pages.yml for GitHub Pages deployment
+- Single-page design with all key information above the fold
 
 **2025-01-03 (Test Coverage - 93%):**
 - Added 7 new tests for output options and spinner creation (82 total tests)
@@ -392,7 +398,7 @@ These items from specs/09-12 are now in scope:
 ## Next Priority
 
 **All core phases complete!** Remaining items:
-1. Testing: Integration tests (E2E flows with real API)
-2. Website: Landing page, documentation site, interactive demo
+1. Website: Interactive demo (terminal recording GIF)
+2. Testing: Integration tests (E2E flows with real API)
 
-Note: Unit test coverage is at practical limits (93%). Remaining uncovered code is console output functions that require mocking or E2E testing.
+Note: Unit test coverage is at practical limits (93%). Landing page complete and deployed via GitHub Pages.
