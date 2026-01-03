@@ -273,12 +273,20 @@ These items from specs/09-12 are now in scope:
 
 ### Claude Integration (specs/12-claude-integration.md)
 - [ ] MCP server implementation
-- [ ] Claude Code integration
+- [x] Claude Code skill integration (.claude/skills/x-cli/)
+- [x] Skill documentation (commands.md, examples.md, troubleshooting.md)
 - [ ] Tool definitions for Claude
 
 ---
 
 ## Recent Enhancements
+
+**2025-01-03 (Claude Integration):**
+- Created Claude Code skill at .claude/skills/x-cli/
+- SKILL.md with complete command reference
+- docs/commands.md with full flag documentation
+- docs/examples.md with real-world usage patterns
+- docs/troubleshooting.md with common issues and fixes
 
 **2025-01-03 (Release & Distribution):**
 - Created GitHub Actions CI workflow (test, build, artifact upload)
