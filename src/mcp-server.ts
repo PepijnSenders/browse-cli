@@ -494,14 +494,61 @@ async function main() {
     inputSchema: {
       selector: z.string().optional().describe('CSS selector to scope extraction (optional)')
     }
-  }, async () => {
+  }, async ({ selector }) => {
     try {
       const result = await withBrowser(async () => {
         const page = await getPage();
 
-        // Extract page content
-        // TODO: Add selector support for scoping extraction
-        return await extractPageContent(page);
+        // If selector is provided, scope the extraction to that element
+        if (selector) {
+          const url = page.url();
+          const title = await page.title();
+
+          const extracted = await page.evaluate((sel) => {
+            const element = document.querySelector(sel);
+            if (!element) {
+              throw new Error(`Element not found: ${sel}`);
+            }
+
+            // Extract text (max 100,000 chars)
+            const text = (element.textContent || '').trim().slice(0, 100000);
+
+            // Extract links (max 100)
+            const linkElements = element.querySelectorAll('a[href]');
+            const links: Array<{ text: string; href: string }> = [];
+            for (let i = 0; i < Math.min(linkElements.length, 100); i++) {
+              const anchor = linkElements[i] as HTMLAnchorElement;
+              links.push({
+                text: (anchor.textContent || '').trim(),
+                href: anchor.href
+              });
+            }
+
+            // Extract images (max 50)
+            const imgElements = element.querySelectorAll('img[src]');
+            const images: Array<{ alt: string; src: string }> = [];
+            for (let i = 0; i < Math.min(imgElements.length, 50); i++) {
+              const img = imgElements[i] as HTMLImageElement;
+              images.push({
+                alt: img.alt || '',
+                src: img.src
+              });
+            }
+
+            return { text, links, images };
+          }, selector);
+
+          return {
+            url,
+            title,
+            text: extracted.text,
+            links: extracted.links,
+            images: extracted.images
+          };
+        } else {
+          // Use the generic extractor for full page
+          return await extractPageContent(page);
+        }
       });
       return formatResult(result);
     } catch (error) {

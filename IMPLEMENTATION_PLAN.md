@@ -306,6 +306,7 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 | 9. Publishing | ✓ Completed (All features) |
 | 10. MCP Server | ✓ Completed |
 | 11. Documentation Polish | ✓ Completed |
+| 12. Feature Enhancements | ✓ Completed |
 
 ---
 
@@ -318,6 +319,19 @@ CLI tool + Claude Code skill for scraping social media and web pages using the u
 - [x] All tests passing (143 tests)
 
 **Verify**: Documentation is accurate and complete ✓
+
+---
+
+## Phase 12: Feature Enhancements
+
+### 12.1 MCP Server Selector Support
+- [x] Implement selector parameter for scrape_page MCP tool
+- [x] Add CSS selector scoping to match CLI functionality
+- [x] Extract text, links, and images from selected element only
+- [x] Handle element not found errors gracefully
+- [x] Verify typecheck and tests pass (143 tests)
+
+**Verify**: scrape_page MCP tool now supports optional selector parameter ✓
 
 ---
 
