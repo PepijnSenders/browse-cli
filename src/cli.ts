@@ -8,18 +8,9 @@
  */
 
 import { Command } from 'commander';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import { startDaemon, stopDaemon, runDaemon } from './daemon.js';
 import { scrape } from './scrape.js';
-
-// Get package.json for version info
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const packageJson = JSON.parse(
-  readFileSync(join(__dirname, '../package.json'), 'utf-8')
-);
+import { VERSION } from './version.js';
 
 // Handle daemon mode (spawned by `browse init`)
 if (process.argv[2] === '__daemon__') {
@@ -34,7 +25,7 @@ if (process.argv[2] === '__daemon__') {
   program
     .name('browse')
     .description('Scrape any webpage to markdown using your browser session')
-    .version(packageJson.version);
+    .version(VERSION);
 
   // Default command: browse <url>
   program

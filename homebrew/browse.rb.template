@@ -23,10 +23,18 @@ class Browse < Formula
   end
 
   def install
-    # The tarball extracts to browse-{platform}/
-    bin.install Dir["browse-*/browse"].first => "browse"
-    pkgshare.install Dir["browse-*/extension"].first => "extension"
-    pkgshare.install Dir["browse-*/skills"].first => "skills"
+    # Handle both cases: tarball may extract with or without top-level dir
+    if File.exist?("browse")
+      bin.install "browse"
+      pkgshare.install "extension"
+      pkgshare.install "skills"
+    else
+      # Tarball extracts to browse-{platform}/
+      platform_dir = Dir["browse-*"].first
+      bin.install "#{platform_dir}/browse" => "browse"
+      pkgshare.install "#{platform_dir}/extension"
+      pkgshare.install "#{platform_dir}/skills"
+    end
   end
 
   def caveats

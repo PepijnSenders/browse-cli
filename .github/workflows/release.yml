@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Generate version file
+        run: echo "export const VERSION = '${{ inputs.version }}';" > src/version.ts
+
       - name: Build macOS binaries (cross-compile)
         run: |
           # Build for arm64 (native)
@@ -69,6 +72,9 @@ jobs:
 
       - name: Install dependencies
         run: bun install
+
+      - name: Generate version file
+        run: echo "export const VERSION = '${{ inputs.version }}';" > src/version.ts
 
       - name: Build Linux binary
         run: |
