@@ -1,10 +1,8 @@
 class Browse < Formula
   desc "Scrape any webpage to markdown using your browser session"
   homepage "https://github.com/PepijnSenders/browse-cli"
-  url "https://registry.npmjs.org/browse-cli/-/browse-cli-1.0.0.tgz"
-  # sha256 will be filled in after npm publish
-  # Run: curl -sL https://registry.npmjs.org/browse-cli/-/browse-cli-1.0.0.tgz | shasum -a 256
-  sha256 "PLACEHOLDER_SHA256"
+  url "https://registry.npmjs.org/@pep/browse-cli/-/browse-cli-1.0.3.tgz"
+  sha256 "c8a58e4a16183ffd07a7c63b2cea1cd00b2ae130daaecf387fb18644616ff020"
   license "MIT"
 
   depends_on "node"
@@ -21,7 +19,7 @@ class Browse < Formula
       1. Open chrome://extensions in Chrome
       2. Enable "Developer mode" (top right)
       3. Click "Load unpacked"
-      4. Select: #{opt_libexec}/lib/node_modules/browse-cli/extension
+      4. Select: #{opt_libexec}/lib/node_modules/@pep/browse-cli/extension
 
       Then start the daemon:
         browse init
