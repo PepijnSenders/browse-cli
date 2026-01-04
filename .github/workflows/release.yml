@@ -223,6 +223,47 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Update Homebrew tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          # Extract SHA256s from checksums.txt
+          ARM64_SHA=$(grep darwin-arm64 release-assets/checksums.txt | awk '{print $1}')
+          X64_SHA=$(grep darwin-x64 release-assets/checksums.txt | awk '{print $1}')
+          LINUX_SHA=$(grep linux-x64 release-assets/checksums.txt | awk '{print $1}')
+
+          echo "SHA256 hashes:"
+          echo "  darwin-arm64: $ARM64_SHA"
+          echo "  darwin-x64:   $X64_SHA"
+          echo "  linux-x64:    $LINUX_SHA"
+
+          # Generate formula from template
+          sed -e "s/{{VERSION}}/${{ inputs.version }}/g" \
+              -e "s/{{SHA256_DARWIN_ARM64}}/${ARM64_SHA}/g" \
+              -e "s/{{SHA256_DARWIN_X64}}/${X64_SHA}/g" \
+              -e "s/{{SHA256_LINUX_X64}}/${LINUX_SHA}/g" \
+              homebrew/browse.rb.template > browse.rb
+
+          echo "Generated formula:"
+          cat browse.rb
+
+          # Clone and update tap repo
+          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/PepijnSenders/homebrew-tap.git tap-repo
+          mkdir -p tap-repo/Formula
+
+          # Update latest formula
+          cp browse.rb tap-repo/Formula/browse.rb
+
+          # Create versioned formula for pinning (browse@1.0.5.rb)
+          cp browse.rb "tap-repo/Formula/browse@${{ inputs.version }}.rb"
+
+          cd tap-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/
+          git diff --staged --quiet || git commit -m "Release browse v${{ inputs.version }}"
+          git push
+
       - name: Summary
         run: |
           echo "## Release v${{ inputs.version }} Complete!" >> $GITHUB_STEP_SUMMARY
@@ -230,4 +271,5 @@ jobs:
           echo "- Version bumped in package.json" >> $GITHUB_STEP_SUMMARY
           echo "- Git tag v${{ inputs.version }} created" >> $GITHUB_STEP_SUMMARY
           echo "- GitHub Release published with binaries" >> $GITHUB_STEP_SUMMARY
-          echo "- npm package published" >> $GITHUB_STEP_SUMMARY
+          echo "- npm package @pep/browse-cli published" >> $GITHUB_STEP_SUMMARY
+          echo "- Homebrew tap updated (pepijnsenders/tap)" >> $GITHUB_STEP_SUMMARY
