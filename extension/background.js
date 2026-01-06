@@ -2,7 +2,7 @@
 // Auto-connects to daemon and relays commands to active tab
 // Designed for MV3 service worker stability
 
-const EXTENSION_VERSION = '1.0.3-debug';
+const EXTENSION_VERSION = '1.0.4';
 console.log('Browse extension loaded, version:', EXTENSION_VERSION);
 
 const WS_URL = 'ws://127.0.0.1:9222';
@@ -13,6 +13,7 @@ let isConnected = false;
 let reconnectDelay = 1000;
 let heartbeatInterval = null;
 let connectionTimeoutId = null;
+let scrapingTabId = null;
 
 const MAX_RECONNECT_DELAY = 10000; // Reduced from 30s to 10s
 const HEARTBEAT_INTERVAL = 15000;  // Ping every 15 seconds
@@ -268,6 +269,18 @@ function sendError(message) {
 
 // Get active tab
 async function getActiveTab() {
+  // If we're in a scraping session, use that tab
+  if (scrapingTabId !== null) {
+    try {
+      const tab = await chrome.tabs.get(scrapingTabId);
+      if (tab) return tab;
+    } catch (error) {
+      // Tab was closed, reset state
+      scrapingTabId = null;
+    }
+  }
+
+  // Otherwise, query for active tab
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) {
     throw new Error('No active tab found');
@@ -433,8 +446,14 @@ async function getPageInfo() {
 
 // Navigate to URL
 async function navigateTo(url) {
-  const tab = await getActiveTab();
-  await chrome.tabs.update(tab.id, { url });
+  // Create new tab instead of updating active one
+  const tab = await chrome.tabs.create({
+    url,
+    active: true  // Focus the new tab
+  });
+
+  // Store tab ID for subsequent operations
+  scrapingTabId = tab.id;
 
   return new Promise((resolve) => {
     const listener = (tabId, changeInfo) => {
@@ -503,6 +522,14 @@ chrome.action.onClicked.addListener(() => {
   if (!isConnected) {
     reconnectDelay = 1000; // Reset backoff for manual reconnect
     connect();
+  }
+});
+
+// Tab cleanup - reset scraping state when tab is closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === scrapingTabId) {
+    console.log('Scraping tab closed, resetting state');
+    scrapingTabId = null;
   }
 });
 

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Browse",
   "description": "Browser extension for the browse CLI - scrape any webpage to markdown",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "permissions": [
     "activeTab",
     "scripting",
