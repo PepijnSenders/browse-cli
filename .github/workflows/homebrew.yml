@@ -16,7 +16,7 @@ jobs:
       - name: Get npm package SHA256
         id: sha
         run: |
-          SHA=$(curl -sL "https://registry.npmjs.org/browse-cli/-/browse-cli-${{ inputs.version }}.tgz" | shasum -a 256 | cut -d' ' -f1)
+          SHA=$(curl -sL "https://registry.npmjs.org/@pep/browse-cli/-/browse-cli-${{ inputs.version }}.tgz" | shasum -a 256 | cut -d' ' -f1)
           echo "sha256=$SHA" >> $GITHUB_OUTPUT
           echo "SHA256: $SHA"
 
@@ -36,7 +36,7 @@ jobs:
           class Browse < Formula
             desc "Scrape any webpage to markdown using your browser session"
             homepage "https://github.com/PepijnSenders/browse-cli"
-            url "https://registry.npmjs.org/browse-cli/-/browse-cli-${{ inputs.version }}.tgz"
+            url "https://registry.npmjs.org/@pep/browse-cli/-/browse-cli-${{ inputs.version }}.tgz"
             sha256 "${{ steps.sha.outputs.sha256 }}"
             license "MIT"
 
